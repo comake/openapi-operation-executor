@@ -106,17 +106,17 @@ const response = await executor.executeOperation('operationId', { accessToken: '
 These are the fields exepcted in an [`AxiosResponse`](https://github.com/axios/axios#response-schema) (in Typescript):
 ```ts
 export interface AxiosResponse<T = any, D = any>  {
-  // `data` is the response that was provided by the server
+  // The response that was provided by the server
   data: T;
-  // `status` is the HTTP status code from the server response
+  // The HTTP status code from the server response
   status: number;
-  // `statusText` is the HTTP status message from the server response
+  // The HTTP status message from the server response
   statusText: string;
   // `headers` the HTTP headers that the server responded with
   // All header names are lowercase and can be accessed using the bracket notation.
   // Example: `response.headers['content-type']`
   headers: AxiosResponseHeaders;
-  // `config` is the config that was provided to `axios` for the request
+  // The config that was provided to `axios` for the request
   config: AxiosRequestConfig<D>;
   // `request` is the request that generated this response
   // It is the last ClientRequest instance in node.js (in redirects)
