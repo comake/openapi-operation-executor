@@ -1,0 +1,59 @@
+{
+	"name": "@comake/openapi-operation-executor",
+	"version": "0.0.0",
+	"description": "Sends web requests according to OpenApi specs",
+	"keywords": [
+    "openapi",
+    "open-api",
+    "swagger",
+		"json",
+		"axios",
+    "node",
+    "request",
+    "api",
+    "js",
+    "typescript",
+    "schema"
+	],
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/comake/openapi-operation-executor.git"
+	},
+	"bugs": {
+		"url": "https://github.com/comake/openapi-operation-executor/issues"
+	},
+	"homepage": "https://github.com/comake/openapi-operation-executor#readme",
+	"license": "MIT",
+	"scripts": {
+		"build": "tsc",
+		"jest": "jest --coverage",
+		"lint": "eslint . --cache --ignore-path .gitignore --max-warnings 0",
+		"test": "npm run test:ts && npm run jest",
+		"test:ts": "tsc -p test --noEmit"
+	},
+	"main": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"files": [
+		"dist"
+	],
+	"dependencies": {
+		"axios": "^0.27.2"
+	},
+	"devDependencies": {
+		"@tsconfig/node14": "^1.0.3",
+		"@types/jest": "^27.4.0",
+		"@types/node": "^17.0.8",
+		"@typescript-eslint/eslint-plugin": "^5.29.0",
+		"@typescript-eslint/parser": "^5.29.0",
+		"eslint": "^8.18.0",
+		"eslint-config-es": "^3.26.13",
+		"eslint-plugin-import": "^2.26.0",
+		"eslint-plugin-jest": "^25.7.0",
+		"eslint-plugin-tsdoc": "^0.2.16",
+		"eslint-plugin-unused-imports": "^2.0.0",
+		"jest": "^27.4.7",
+		"ts-jest": "^27.1.3",
+		"ts-node": "^10.8.0",
+		"typescript": "^4.5.4"
+	}
+}
