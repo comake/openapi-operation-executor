@@ -24,6 +24,10 @@
 	},
 	"homepage": "https://github.com/comake/openapi-operation-executor#readme",
 	"license": "MIT",
+  "author": {
+    "name" : "Adler Faulkner",
+    "email" : "adler@comake.io"
+  },
 	"scripts": {
 		"build": "tsc",
 		"jest": "jest --coverage",
