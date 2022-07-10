@@ -2,7 +2,9 @@
 
 # OpenAPI Operation Executor
 
-This library provides a helper method to perform operations (web requests) specified by an [OpenAPI spec](https://www.openapis.org/). Every operation in an OpenAPI spec has a unique field used to identify it, called an operationId. The `executeOperation` method of this library allows a developer to send properly formatted requests to an API by supply an OpenAPI spec (as JSON), the operationId of the operation they want to perform, and the proper arguments for that operation. This makes it so that the developer does not have to take the time to generate an SDK out of an OpenAPI spec every time they need to work with a new spec or every time one changes (for example using the [openapi npm package](https://github.com/openapi/openapi)). Not having an SDK installed per API they need to interact with also has the effect of reducing their application's bundle size.
+This library provides a helper method to perform operations (web requests) specified by an [OpenAPI spec](https://www.openapis.org/).
+
+Every operation in an OpenAPI spec has a unique field used to identify it, called an operationId. The `executeOperation` method of this library allows a developer to send properly formatted requests to an API by supplying an OpenAPI spec (as JSON), the operationId of the operation they want to perform, and the proper arguments for that operation. This makes it so that the developer does not have to take the time to generate an SDK out of an OpenAPI spec every time they need to work with a new spec or every time one changes (for example using the [openapi npm package](https://github.com/openapi/openapi)). Not having an SDK installed per API they need to interact with also has the effect of reducing their application's bundle size.
 
 ## Installation
 
