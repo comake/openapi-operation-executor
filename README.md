@@ -25,7 +25,7 @@ import { OpenApiOperationExecutor } from '@comake/openapi-operation-executor';
 import type { OpenApi } from '@comake/openapi-operation-executor';
 
 // Import your OpenAPI spec as a JSON module (requires the resolveJsonModule flag in typescript).
-// Alternatively, you could read a YAML file uing fs and use js-yaml to convert to JSON.
+// Alternatively, you could read a YAML file uing fs and use the yaml npm module to convert to JSON.
 import openApiSpec from './path/to/openapi-spec.json';
 
 // Initialize the OpenAPI Operation Executor
