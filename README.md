@@ -43,9 +43,9 @@ const response = await executor.executeOperation(
 
 #### executeOperation
 
-This library uses [axios](https://github.com/axios/axios) to send web requests.
+The `executeOperation` method of an `OpenApiOperationExecutor` instance sends a properly formatted web request to the API described in the provided OpenAPI spec (as JSON). This library uses [axios](https://github.com/axios/axios) to send web requests.
 
-Requests will automatically use the method (GET, POST, etc.) that the OpenAPI operation is nested under in the provided spec.
+Requests automatically use the method (GET, POST, etc.) that the OpenAPI operation is nested under in the provided spec.
 
 ⚠️ This library currently only supports sending JSON data in request bodies. It automatically adds the header `Content-Type: application/json` to every request it sends.
 
