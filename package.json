@@ -1,19 +1,19 @@
 {
 	"name": "@comake/openapi-operation-executor",
-	"version": "0.0.1",
+	"version": "0.1.0",
 	"description": "Sends web requests according to OpenApi specs",
 	"keywords": [
-    "openapi",
-    "open-api",
-    "swagger",
+		"openapi",
+		"open-api",
+		"swagger",
 		"json",
 		"axios",
-    "node",
-    "request",
-    "api",
-    "js",
-    "typescript",
-    "schema"
+		"node",
+		"request",
+		"api",
+		"js",
+		"typescript",
+		"schema"
 	],
 	"repository": {
 		"type": "git",
@@ -24,10 +24,10 @@
 	},
 	"homepage": "https://github.com/comake/openapi-operation-executor#readme",
 	"license": "MIT",
-  "author": {
-    "name" : "Adler Faulkner",
-    "email" : "adler@comake.io"
-  },
+	"author": {
+		"name": "Adler Faulkner",
+		"email": "adler@comake.io"
+	},
 	"scripts": {
 		"build": "tsc",
 		"jest": "jest --coverage",
@@ -41,6 +41,7 @@
 		"dist"
 	],
 	"dependencies": {
+		"@apidevtools/json-schema-ref-parser": "^9.0.9",
 		"axios": "^0.27.2"
 	},
 	"devDependencies": {

@@ -53,7 +53,7 @@ describe('An OpenApiAxiosParamFactory', (): void => {
 
   it('adds the Authorization header if oAuth security scopes and an accessToken are specified.',
     async(): Promise<void> => {
-      operation.security = [{ oAuth: 'example/scope' }];
+      operation.security = [{ oAuth: [ 'example/scope' ]}];
       configuration.accessToken = '12345';
       openApiAxiosParamFactory = new OpenApiAxiosParamFactory(
         { ...operation, pathName, pathReqMethod },
@@ -65,7 +65,7 @@ describe('An OpenApiAxiosParamFactory', (): void => {
 
   it('adds the Authorization header if oAuth security scopes and an accessToken function are specified.',
     async(): Promise<void> => {
-      operation.security = [{ oAuth: 'example/scope' }];
+      operation.security = [{ oAuth: [ 'example/scope' ]}];
       configuration.accessToken = (): string => '12345';
       openApiAxiosParamFactory = new OpenApiAxiosParamFactory(
         { ...operation, pathName, pathReqMethod },
@@ -73,6 +73,74 @@ describe('An OpenApiAxiosParamFactory', (): void => {
       );
       const response = await openApiAxiosParamFactory.createParams();
       expect(response.options.headers?.Authorization).toBe('Bearer 12345');
+    });
+
+  it('adds the apikey header if apiKey security, an apiKey security scheme, and an apikey are specified.',
+    async(): Promise<void> => {
+      operation.security = [{ apiKey: []}];
+      configuration.apiKey = '12345';
+      openApiAxiosParamFactory = new OpenApiAxiosParamFactory(
+        { ...operation, pathName, pathReqMethod },
+        configuration,
+        { apiKey: { in: 'header', name: 'X-API-KEY' }},
+      );
+      const response = await openApiAxiosParamFactory.createParams();
+      expect(response.options.headers?.['X-API-KEY']).toBe('12345');
+    });
+
+  it('adds the apikey header if apiKey security, an apiKey security scheme, and an apikey function are specified.',
+    async(): Promise<void> => {
+      operation.security = [{ apiKey: []}];
+      configuration.apiKey = (): string => '12345';
+      openApiAxiosParamFactory = new OpenApiAxiosParamFactory(
+        { ...operation, pathName, pathReqMethod },
+        configuration,
+        { apiKey: { in: 'header', name: 'X-API-KEY' }},
+      );
+      const response = await openApiAxiosParamFactory.createParams();
+      expect(response.options.headers?.['X-API-KEY']).toBe('12345');
+    });
+
+  it('adds the apikey query parameter if apiKey security, an apiKey security scheme, and an apikey are specified.',
+    async(): Promise<void> => {
+      operation.security = [{ apiKey: []}];
+      configuration.apiKey = '12345';
+      openApiAxiosParamFactory = new OpenApiAxiosParamFactory(
+        { ...operation, pathName, pathReqMethod },
+        configuration,
+        { apiKey: { in: 'query', name: 'apikey' }},
+      );
+      const response = await openApiAxiosParamFactory.createParams();
+      expect(response.options.data).toBe('{"apikey":"12345"}');
+    });
+
+  it(`adds the apikey query parameter if apiKey security,
+    an apiKey security scheme, and an apikey function are specified.`,
+  async(): Promise<void> => {
+    operation.security = [{ apiKey: []}];
+    configuration.apiKey = (): string => '12345';
+    openApiAxiosParamFactory = new OpenApiAxiosParamFactory(
+      { ...operation, pathName, pathReqMethod },
+      configuration,
+      { apiKey: { in: 'query', name: 'apikey' }},
+    );
+    const response = await openApiAxiosParamFactory.createParams();
+    expect(response.options.data).toBe('{"apikey":"12345"}');
+  });
+
+  it('errors when an apiKey is specified with a security scheme with in value other than header or query.',
+    async(): Promise<void> => {
+      operation.security = [{ apiKey: []}];
+      configuration.apiKey = '12345';
+      openApiAxiosParamFactory = new OpenApiAxiosParamFactory(
+        { ...operation, pathName, pathReqMethod },
+        configuration,
+        { apiKey: { in: 'cookie', name: 'apikey' }},
+      );
+      await expect(openApiAxiosParamFactory.createParams())
+        .rejects.toThrow(Error);
+      await expect(openApiAxiosParamFactory.createParams())
+        .rejects.toThrow('apiKey security scheme in cookie is not supported.');
     });
 
   it('overrides the configuration\'s baseOptions with the supplied options.',

@@ -20,7 +20,8 @@ describe('Operation execution', (): void => {
 
   beforeAll(async(): Promise<void> => {
     (axios.request as jest.Mock).mockResolvedValue(mockResponse);
-    executor = new OpenApiOperationExecutor(openApiSpec as OpenApi);
+    executor = new OpenApiOperationExecutor();
+    await executor.setOpenapiSpec(openApiSpec as OpenApi);
   });
 
   it('sends a web request via axios.', async(): Promise<void> => {

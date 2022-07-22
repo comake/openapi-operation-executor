@@ -28,27 +28,6 @@ export function assertParamExists(functionName: string, paramName: string, param
 }
 
 /**
- * TODO: Add support for apiKey security
- * Sets an api key field of an object to the apiKey value in the {@link OpenApiClientConfiguration}.
- *
- * @param object - The object
- * @param keyParamName - The name of the key parameter to set
- * @param configuration - The OpenApiClientConfiguration
- */
-// export async function setApiKeyToObject(
-//   object: any,
-//   keyParamName: string,
-//   configuration?: OpenApiClientConfiguration,
-// ): Promise<void> {
-//   if (configuration?.apiKey) {
-//     const localVarApiKeyValue = typeof configuration.apiKey === 'function'
-//       ? await configuration.apiKey(keyParamName)
-//       : await configuration.apiKey;
-//     object[keyParamName] = localVarApiKeyValue;
-//   }
-// }
-
-/**
  * TODO: Add support for username and password security
  * Sets the auth field of an object to the auth information of an {@link OpenApiClientConfiguration}.
  *

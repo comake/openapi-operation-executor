@@ -29,7 +29,8 @@ import type { OpenApi } from '@comake/openapi-operation-executor';
 import openApiSpec from './path/to/openapi-spec.json';
 
 // Initialize the OpenAPI Operation Executor
-const executor = new OpenApiOperationExecutor(openApiSpec as OpenApi);
+const executor = new OpenApiOperationExecutor();
+await executor.setOpenapiSpec(openApiSpec as OpenApi)
 
 // Execute the operation and get the response
 const response = await executor.executeOperation(
@@ -65,6 +66,13 @@ These are the available config options for making requests (in Typescript):
 ```ts
 export interface OpenApiClientConfiguration {
   /**
+  * Parameter for apiKey security
+  * @param name - security name
+  */
+  apiKey?: string
+  | Promise<string>
+  | ((name: string) => string) | ((name: string) => Promise<string>);
+  /**
   * Parameter for oauth2 security
   * @param name - security name
   * @param scopes - oauth2 scope
@@ -83,7 +91,7 @@ export interface OpenApiClientConfiguration {
 }
 ```
 
-⚠️ This library currently only supports oAuth2 security via an `accessToken`. It automatically adds the header `Authorization: Bearer ACCESS_TOKEN` to requests if oAuth security is specified in the OpenAPI spec.
+⚠️ This library currently only supports oAuth2 security via an `accessToken` or `apikey` authorization through a header or a query parameter. It automatically adds the header `Authorization: Bearer ACCESS_TOKEN` to requests if an `oAuth` security scheme is specified in the OpenApi spec. It automatically adds the `apikey` as a header or query parameter if an `apiKey` security scheme is specified in the OpenApi spec.
 
 **Return value**
 
@@ -129,6 +137,6 @@ export interface AxiosResponse<T = any, D = any>  {
 
 ## TODO
 - [ ] Add support for server variables when constructing the basePath.
-- [ ] Add support for authentication methods other than oAuth access tokens (apiKey, username & password).
+- [ ] Add support for authentication methods other than oAuth access tokens and header or query param apikeys (eg. username & password, and cookie apikey).
 - [ ] Add support for configuring the Content-Type header
 - [ ] Add support for constructing FormData for execution environments that do not support the FormData class

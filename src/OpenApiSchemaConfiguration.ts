@@ -60,6 +60,18 @@ export interface OpenApi {
   */
   [k: string]: unknown;
 }
+
+export interface DereferencedOpenApi {
+  openapi: string;
+  info: Info;
+  externalDocs?: ExternalDocumentation;
+  servers?: Server[];
+  security?: SecurityRequirement[];
+  tags?: Tag[];
+  paths: Paths;
+  components?: DereferencedComponents;
+}
+
 export interface Info {
   title: string;
   description?: string;
@@ -133,7 +145,7 @@ export interface Tag {
   */
   [k: string]: unknown;
 }
-export interface Paths {}
+export type Paths = Record<string, PathItem>;
 /**
  * This interface was referenced by `Paths`'s JSON-Schema definition
  * via the `patternProperty` "^\/".
@@ -144,6 +156,21 @@ export interface PathItem {
   description?: string;
   servers?: Server[];
   parameters?: (Parameter | Reference)[];
+  get?: Operation;
+  post?: Operation;
+  patch?: Operation;
+  put?: Operation;
+  delete?: Operation;
+  options?: Operation;
+  head?: Operation;
+  trace?: Operation;
+}
+
+export interface DereferencedPathItem {
+  summary?: string;
+  description?: string;
+  servers?: Server[];
+  parameters?: Parameter[];
 }
 // Example and examples are mutually exclusive
 export type ExampleXORExamples = Record<string, unknown>;
@@ -164,10 +191,10 @@ export interface Operation {
   description?: string;
   externalDocs?: ExternalDocumentation;
   operationId?: string;
-  parameters?: (Parameter | Reference)[];
+  parameters?: Parameter[];
   requestBody?: RequestBody | Reference;
   responses: Responses;
-  callbacks?: Record<string, Callback | Reference>;
+  callbacks?: Record<string, Callback>;
   deprecated?: boolean;
   security?: SecurityRequirement[];
   servers?: Server[];
@@ -204,6 +231,18 @@ export interface Response {
   [k: string]: unknown;
 }
 
+export interface DereferencedResponse {
+  description: string;
+  headers?: Record<string, Header>;
+  content?: Record<string, MediaType>;
+  links?: Record<string, Link>;
+  /**
+   * This interface was referenced by `Response`'s JSON-Schema definition
+   * via the `patternProperty` "^x-".
+   */
+  [k: string]: unknown;
+}
+
 export interface Link {
   operationId?: string;
   operationRef?: string;
@@ -220,56 +259,31 @@ export interface Link {
 
 export type Callback = Record<string, PathItem>;
 
+export type DereferencedCallback = Record<string, DereferencedPathItem>;
+
 export interface Components {
-  /**
-   * This interface was referenced by `undefined`'s JSON-Schema definition
-   * via the `patternProperty` "^[a-zA-Z0-9\.\-_]+$".
-   */
   schemas?: Record<string, Schema | Reference>;
-  /**
-   * This interface was referenced by `undefined`'s JSON-Schema definition
-   * via the `patternProperty` "^[a-zA-Z0-9\.\-_]+$".
-   */
   responses?: Record<string, Reference | Response>;
-  /**
-   * This interface was referenced by `undefined`'s JSON-Schema definition
-   * via the `patternProperty` "^[a-zA-Z0-9\.\-_]+$".
-   */
   parameters?: Record<string, Reference | Parameter>;
-  /**
-   * This interface was referenced by `undefined`'s JSON-Schema definition
-   * via the `patternProperty` "^[a-zA-Z0-9\.\-_]+$".
-   */
   examples?: Record<string, Reference | Example>;
-  /**
-   * This interface was referenced by `undefined`'s JSON-Schema definition
-   * via the `patternProperty` "^[a-zA-Z0-9\.\-_]+$".
-   */
   requestBodies?: Record<string, Reference | RequestBody>;
-  /**
-   * This interface was referenced by `undefined`'s JSON-Schema definition
-   * via the `patternProperty` "^[a-zA-Z0-9\.\-_]+$".
-   */
   headers?: Record<string, Reference | Header>;
-  /**
-   * This interface was referenced by `undefined`'s JSON-Schema definition
-   * via the `patternProperty` "^[a-zA-Z0-9\.\-_]+$".
-   */
   securitySchemes?: Record<string, Reference | SecurityScheme>;
-  /**
-   * This interface was referenced by `undefined`'s JSON-Schema definition
-   * via the `patternProperty` "^[a-zA-Z0-9\.\-_]+$".
-   */
   links?: Record<string, Reference | Link>;
-  /**
-   * This interface was referenced by `undefined`'s JSON-Schema definition
-   * via the `patternProperty` "^[a-zA-Z0-9\.\-_]+$".
-   */
   callbacks?: Record<string, Reference | Callback>;
-  /**
-   * This interface was referenced by `Components`'s JSON-Schema definition
-   * via the `patternProperty` "^x-".
-   */
+  [k: string]: unknown;
+}
+
+export interface DereferencedComponents {
+  schemas?: Record<string, DereferencedSchema>;
+  responses?: Record<string, DereferencedResponse>;
+  parameters?: Record<string, Parameter>;
+  examples?: Record<string, Example>;
+  requestBodies?: Record<string, RequestBody>;
+  headers?: Record<string, Header>;
+  securitySchemes?: Record<string, SecurityScheme>;
+  links?: Record<string, Link>;
+  callbacks?: Record<string, DereferencedCallback>;
   [k: string]: unknown;
 }
 
@@ -298,6 +312,49 @@ export interface Schema {
   items?: Schema | Reference;
   properties?: Record<string, Schema | Reference>;
   additionalProperties?: Schema | Reference | boolean;
+  description?: string;
+  format?: string;
+  default?: unknown;
+  nullable?: boolean;
+  discriminator?: Discriminator;
+  readOnly?: boolean;
+  writeOnly?: boolean;
+  example?: unknown;
+  externalDocs?: ExternalDocumentation;
+  deprecated?: boolean;
+  xml?: XML;
+  /**
+   * This interface was referenced by `Schema`'s JSON-Schema definition
+   * via the `patternProperty` "^x-".
+   */
+  [k: string]: unknown;
+}
+
+export interface DereferencedSchema {
+  title?: string;
+  multipleOf?: number;
+  maximum?: number;
+  exclusiveMaximum?: boolean;
+  minimum?: number;
+  exclusiveMinimum?: boolean;
+  maxLength?: number;
+  minLength?: number;
+  pattern?: string;
+  maxItems?: number;
+  minItems?: number;
+  uniqueItems?: boolean;
+  maxProperties?: number;
+  minProperties?: number;
+  required?: string[];
+  enum?: unknown[];
+  type?: 'array' | 'boolean' | 'integer' | 'number' | 'object' | 'string';
+  not?: DereferencedSchema;
+  allOf?: DereferencedSchema[];
+  oneOf?: DereferencedSchema[];
+  anyOf?: DereferencedSchema[];
+  items?: DereferencedSchema;
+  properties?: Record<string, DereferencedSchema>;
+  additionalProperties?: DereferencedSchema | boolean;
   description?: string;
   format?: string;
   default?: unknown;
