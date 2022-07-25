@@ -1,4 +1,16 @@
-export const DUMMY_BASE_URL = 'https://example.com';
+export type PrimitiveJSONValue =
+| string
+| number
+| boolean;
+
+export type NestedJSONValue =
+// eslint-disable-next-line @typescript-eslint/consistent-indexed-object-style
+| {[x: string]: JSONValue }
+| JSONValue[];
+
+export type JSONValue =
+  | PrimitiveJSONValue
+  | NestedJSONValue;
 
 /**
  * Defines a new error type signifying that a field is required.
@@ -41,16 +53,6 @@ export function assertParamExists(functionName: string, paramName: string, param
 // }
 
 /**
- * Transforms a URL object into a string containing it's path, search, and hash.
- *
- * @param url - The URL object
- * @returns A string with the URL object's pathName, search, and hash concatenated
- */
-export function toPathString(url: URL): string {
-  return `${url.pathname}${url.search}${url.hash}`;
-}
-
-/**
  * Check if the given MIME is a JSON MIME.
  * JSON MIME examples:
  *   application/json
@@ -78,4 +80,64 @@ export function serializeDataIfNeeded(value: any, mimeType: string): string {
   return needsSerialization
     ? JSON.stringify(value !== undefined ? value : {})
     : value || '';
+}
+
+function arrayOrObjectParamToUrlString(
+  paramName: string,
+  paramValue: NestedJSONValue,
+  paramIndex: number,
+  parentIsArray: boolean,
+  parentKeys: (string | number)[],
+): string {
+  if (parentIsArray) {
+    parentKeys.push(paramIndex);
+  } else {
+    parentKeys.push(paramName);
+  }
+  // eslint-disable-next-line @typescript-eslint/no-use-before-define
+  return jsonParamsToUrlString(paramValue, parentKeys);
+}
+
+function nonArrayOrObjectParamToUrlString(
+  paramName: string,
+  paramValue: PrimitiveJSONValue,
+  paramsIsArray: boolean,
+  parentKeys: (string | number)[],
+): string {
+  let paramKey;
+  if (parentKeys.length > 0) {
+    const keys = paramsIsArray ? parentKeys : [ ...parentKeys, paramName ];
+    paramKey = `${keys[0]}${keys.slice(1).map((key): string => `[${key}]`).join('')}`;
+  } else {
+    paramKey = paramName;
+  }
+
+  const encodedParamValue = encodeURIComponent(paramValue);
+  if (paramsIsArray) {
+    return `${paramKey}[]=${encodedParamValue}`;
+  }
+  return `${paramKey}=${encodedParamValue}`;
+}
+
+export function jsonParamsToUrlString(params: NestedJSONValue, parentKeys: (string | number)[] = []): string {
+  const paramsIsArray = Array.isArray(params);
+  const paramStrings = Object.keys(params).map((paramName, i): string => {
+    const paramValue = (params as Record<string, JSONValue>)[paramName];
+    if (typeof paramValue === 'object') {
+      return arrayOrObjectParamToUrlString(paramName, paramValue, i, paramsIsArray, parentKeys);
+    }
+    return nonArrayOrObjectParamToUrlString(
+      paramName,
+      paramValue,
+      paramsIsArray,
+      parentKeys,
+    );
+  });
+
+  parentKeys.pop();
+  return paramStrings.join('&');
+}
+
+export function escapeRegExp(string: string): string {
+  return string.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
 }
