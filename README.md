@@ -140,3 +140,4 @@ export interface AxiosResponse<T = any, D = any>  {
 - [ ] Add support for authentication methods other than oAuth access tokens and header or query param apikeys (eg. username & password, and cookie apikey).
 - [ ] Add support for configuring the Content-Type header
 - [ ] Add support for constructing FormData for execution environments that do not support the FormData class
+- [ ] Add support for cookie parameters
