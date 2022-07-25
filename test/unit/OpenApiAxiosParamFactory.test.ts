@@ -120,8 +120,8 @@ describe('An OpenApiAxiosParamFactory', (): void => {
           { apiKey: { in: 'query', name: 'apikey' }},
         );
         const response = await openApiAxiosParamFactory.createParams();
-        expect(response.url).toBe('/example/api/path');
-        expect(response.options.data).toBe('{"apikey":"12345"}');
+        expect(response.url).toBe('/example/api/path?apikey=12345');
+        expect(response.options.data).toBe('{}');
       });
 
     it(`adds the apikey query parameter if apiKey security,
@@ -134,8 +134,8 @@ describe('An OpenApiAxiosParamFactory', (): void => {
         { apiKey: { in: 'query', name: 'apikey' }},
       );
       const response = await openApiAxiosParamFactory.createParams();
-      expect(response.url).toBe('/example/api/path');
-      expect(response.options.data).toBe('{"apikey":"12345"}');
+      expect(response.url).toBe('/example/api/path?apikey=12345');
+      expect(response.options.data).toBe('{}');
     });
 
     it('errors when an apiKey is specified with a security scheme set to a value that is not supported.',
@@ -284,7 +284,7 @@ describe('An OpenApiAxiosParamFactory', (): void => {
   it('adds a serialized representation of the args in the data field if the operation does not use parameters.',
     async(): Promise<void> => {
       openApiAxiosParamFactory = new OpenApiAxiosParamFactory(
-        { ...operation, pathName, pathReqMethod, parameters },
+        { ...operation, pathName, pathReqMethod },
         configuration,
       );
       const response = await openApiAxiosParamFactory.createParams({ foo: 'bar' });
