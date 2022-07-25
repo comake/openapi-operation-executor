@@ -1,4 +1,4 @@
-/* eslint-disable jest/no-commented-out-tests, no-useless-escape */
+/* eslint-disable jest/no-commented-out-tests */
 import {
   RequiredError,
   assertParamExists,
