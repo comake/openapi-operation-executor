@@ -44,7 +44,9 @@ const PARAMETER_AND_SCHEME_LOCATIONS = {
  */
 export class OpenApiAxiosParamFactory {
   private pathName: string;
-  private urlQuery?: string;
+  private queryParameters: Record<string, JSONValue> = {};
+  private headerParameters: HeaderObject = {};
+  private requestBodyArgs: Record<string, any> = {};
   private readonly pathReqMethod: string;
   private readonly security?: SecurityRequirement[];
   private readonly securitySchemes?: DereferencedComponents['securitySchemes'];
@@ -75,56 +77,46 @@ export class OpenApiAxiosParamFactory {
     args: Record<string, any> = {},
     options: AxiosRequestConfig = {},
   ): Promise<AxiosRequestParams> {
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    const headerParameter = { 'Content-Type': 'application/json' };
-    await this.setSecurityIfNeeded(headerParameter, args);
-    const requestBodyArgs: Record<string, any> = {};
-    await this.addParametersToUrlAndHeader(headerParameter, args, requestBodyArgs);
+    this.headerParameters['Content-Type'] = 'application/json';
+    await this.setSecurityIfNeeded();
+    await this.addParametersToUrlAndHeader(args);
+    const urlQuery = jsonParamsToUrlString(this.queryParameters);
 
     return {
-      url: `${this.pathName}${this.urlQuery ? `?${this.urlQuery}` : ''}`,
-      options: this.constructRequestOptions(options, headerParameter, requestBodyArgs),
+      url: `${this.pathName}${urlQuery.length > 0 ? `?${urlQuery}` : ''}`,
+      options: this.constructRequestOptions(options),
     };
   }
 
   /**
-   * Sets the security settings on the headerParameters object or args object if oAuth or apikey security is set.
-   *
-   * @param headerParameter - The header parameter object
-   * @param args - The operation arguments
+   * Sets the security settings on the header or query parameters object if oAuth or apikey security is set.
    */
-  private async setSecurityIfNeeded(headerParameter: HeaderObject, args: Record<string, any>): Promise<void> {
+  private async setSecurityIfNeeded(): Promise<void> {
     if (this.security && this.security.length > 0) {
       const oAuthSecurity = this.security.find((securityReq: SecurityRequirement): boolean => 'oAuth' in securityReq);
       if (oAuthSecurity && this.configuration.accessToken) {
-        await this.setOAuthToHeaderObject(headerParameter, 'oAuth', oAuthSecurity.oAuth);
+        await this.setOAuthToHeaderObject(this.headerParameters, 'oAuth', oAuthSecurity.oAuth);
         return;
       }
 
       const apiKeySecurity = this.security.find((securityReq: SecurityRequirement): boolean => 'apiKey' in securityReq);
       if (apiKeySecurity && this.configuration.apiKey) {
-        await this.setApiKeyToHeaderOrArgsObject(headerParameter, args);
+        await this.setApiKeyToHeaderOrQueryObject();
       }
     }
   }
 
   /**
    * Sets an api key field of an object to the apiKey value in the {@link OpenApiClientConfiguration}.
-   *
-   * @param headerParameter - The header parameter object
-   * @param args - The operation arguments
    */
-  private async setApiKeyToHeaderOrArgsObject(
-    headerParameter: HeaderObject,
-    args: Record<string, any>,
-  ): Promise<void> {
+  private async setApiKeyToHeaderOrQueryObject(): Promise<void> {
     const securityScheme = this.securitySchemes?.apiKey as APIKeySecurityScheme | undefined;
     if (securityScheme) {
       const apiKey = await this.getApiKey(securityScheme.name);
       if (securityScheme.in === PARAMETER_AND_SCHEME_LOCATIONS.header) {
-        headerParameter[securityScheme.name] = apiKey!;
+        this.headerParameters[securityScheme.name] = apiKey!;
       } else if (securityScheme.in === PARAMETER_AND_SCHEME_LOCATIONS.query) {
-        args[securityScheme.name] = apiKey;
+        this.queryParameters[securityScheme.name] = apiKey!;
       } else {
         throw new Error(`apiKey security scheme in ${securityScheme.in} is not supported.`);
       }
@@ -141,19 +133,19 @@ export class OpenApiAxiosParamFactory {
    * Helper that sets the Authorization field of an object. Generates an access token
    * if the configuration specifies an access token generation function, just uses the value if not.
    *
-   * @param headerParameter - The header parameter object
+   * @param headerParameters - The header parameter object
    * @param name - The security name used to generate an access token
    * @param scopes - oauth2 scopes used to generate an access token
    */
   private async setOAuthToHeaderObject(
-    headerParameter: any,
+    headerParameters: any,
     name: string,
     scopes: string[],
   ): Promise<void> {
     const localVarAccessTokenValue = typeof this.configuration.accessToken === 'function'
       ? await this.configuration.accessToken(name, scopes)
       : await this.configuration.accessToken;
-    headerParameter.Authorization = `Bearer ${localVarAccessTokenValue}`;
+    headerParameters.Authorization = `Bearer ${localVarAccessTokenValue}`;
   }
 
   /**
@@ -161,38 +153,30 @@ export class OpenApiAxiosParamFactory {
    * on the operation's "parameters" configuration. See [the spec](https://spec.openapis.org/oas/v3.1.0#parameter-object)
    * for more info.
    *
-   * @param headerParameter - The header parameter object
    * @param args - The operation arguments
    */
-  private async addParametersToUrlAndHeader(
-    headerParameter: HeaderObject,
-    args: Record<string, any>,
-    requestBodyArgs: Record<string, any>,
-  ): Promise<void> {
+  private async addParametersToUrlAndHeader(args: Record<string, any>): Promise<void> {
     if (this.parameters) {
       this.assertAllRequiredParametersArePresent(args);
+    }
 
-      const queryParameters: Record<string, JSONValue> = {};
-      for (const [ key, value ] of Object.entries(args)) {
-        const parameter = this.parameters.find((param): boolean => param.name === key);
-        if (parameter) {
-          const parameterName = parameter.name as string;
-          if (parameter.in === PARAMETER_AND_SCHEME_LOCATIONS.query) {
-            queryParameters[key] = value;
-          } else if (parameter.in === PARAMETER_AND_SCHEME_LOCATIONS.path) {
-            this.replacePathTemplateInUrlPath(parameterName, value);
-          } else if (parameter.in === PARAMETER_AND_SCHEME_LOCATIONS.header) {
-            this.addParameterToHeaders(headerParameter, parameterName, value);
-          } else {
-            throw new Error(`Parameters with "in" set to ${parameter.in} are not supported.`);
-          }
-          break;
+    for (const [ key, value ] of Object.entries(args)) {
+      const parameter = this.parameters?.find((param): boolean => param.name === key);
+      if (parameter) {
+        const parameterName = parameter.name as string;
+        if (parameter.in === PARAMETER_AND_SCHEME_LOCATIONS.query) {
+          this.queryParameters[key] = value;
+        } else if (parameter.in === PARAMETER_AND_SCHEME_LOCATIONS.path) {
+          this.replacePathTemplateInUrlPath(parameterName, value);
+        } else if (parameter.in === PARAMETER_AND_SCHEME_LOCATIONS.header) {
+          this.addParameterToHeaders(parameterName, value);
+        } else {
+          throw new Error(`Parameters with "in" set to ${parameter.in} are not supported.`);
         }
-        // Argument was not used for query, header, or path, likely used in request body.
-        requestBodyArgs[key] = value;
+      } else {
+        // Argument was not used for query, header, or path parameter, should be used in request body.
+        this.requestBodyArgs[key] = value;
       }
-
-      this.urlQuery = jsonParamsToUrlString(queryParameters);
     }
   }
 
@@ -211,9 +195,9 @@ export class OpenApiAxiosParamFactory {
     }
   }
 
-  private addParameterToHeaders(headerParameter: HeaderObject, parameterName: string, value: string): void {
+  private addParameterToHeaders(parameterName: string, value: string): void {
     if (!IGNORED_HEADER_PARAMETERS.has(parameterName.toLowerCase())) {
-      headerParameter[parameterName] = value;
+      this.headerParameters[parameterName] = value;
     }
   }
 
@@ -226,27 +210,21 @@ export class OpenApiAxiosParamFactory {
    * Helper that constructs the request options.
    *
    * @param options - The AxiosRequestConfig options object
-   * @param headerParameter - The header parameter object
-   * @param requestBodyArgs - The request body arguments
    * @returns The request options object
    */
-  private constructRequestOptions(
-    options: AxiosRequestConfig,
-    headerParameter: HeaderObject,
-    requestBodyArgs?: Record<string, any>,
-  ): AxiosRequestConfig {
+  private constructRequestOptions(options: AxiosRequestConfig): AxiosRequestConfig {
     const { baseOptions } = this.configuration;
     const requestOptions = {
       method: this.pathReqMethod,
       ...baseOptions,
       ...options,
       headers: {
-        ...headerParameter,
+        ...this.headerParameters,
         ...baseOptions?.headers,
         ...options.headers,
       },
     };
-    requestOptions.data = serializeDataIfNeeded(requestBodyArgs, requestOptions.headers['Content-Type']);
+    requestOptions.data = serializeDataIfNeeded(this.requestBodyArgs, requestOptions.headers['Content-Type']);
     return requestOptions;
   }
 }
