@@ -1,6 +1,11 @@
-/* eslint-disable jest/no-commented-out-tests */
+/* eslint-disable jest/no-commented-out-tests, no-useless-escape */
 import {
-  RequiredError, assertParamExists, toPathString, isJsonMime, serializeDataIfNeeded,
+  RequiredError,
+  assertParamExists,
+  isJsonMime,
+  serializeDataIfNeeded,
+  jsonParamsToUrlString,
+  escapeRegExp,
 } from '../../src/OpenApiClientUtils';
 
 describe('OpenApiClientUtils', (): void => {
@@ -32,30 +37,6 @@ describe('OpenApiClientUtils', (): void => {
   });
 
   /**
-   * TODO: Add support for apiKey security
-   */
-  // describe('setApiKeyToObject', (): void => {
-  //   const keyParamName = 'key';
-  //   let object: any;
-  //   beforeEach((): void => {
-  //     object = {};
-  //   });
-  //   it('sets the keyParamName to the apiKey value on the object.', async(): Promise<void> => {
-  //     await setApiKeyToObject(object, keyParamName, { apiKey: '12345' });
-  //     expect(object.key).toBe('12345');
-  //   });
-  //   it('sets the keyParamName to the return value of the apiKey function on the object.', async(): Promise<void> => {
-  //     await setApiKeyToObject(object, keyParamName, { apiKey: (): string => '12345' });
-  //     expect(object.key).toBe('12345');
-  //   });
-  //   it('does not set the keyParamName on the object if no apiKey field exists in the configuration.',
-  //     async(): Promise<void> => {
-  //       await setApiKeyToObject(object, keyParamName, {});
-  //       expect(object.key).toBeUndefined();
-  //     });
-  // });
-
-  /**
    * TODO: Add support for username and password security
    */
   // describe('setBasicAuthToObject', (): void => {
@@ -79,13 +60,6 @@ describe('OpenApiClientUtils', (): void => {
   //       expect(object.auth).toBeUndefined();
   //     });
   // });
-
-  describe('toPathString', (): void => {
-    it('returns a URL object\'s pathName, search and hash.', (): void => {
-      const url = new URL('https://example.com/path/to?query=apple#hashtastic');
-      expect(toPathString(url)).toBe('/path/to?query=apple#hashtastic');
-    });
-  });
 
   describe('isJsonMime', (): void => {
     it('returns true if the provided mime conforms to a json mime type, false otherwise.', (): void => {
@@ -116,6 +90,42 @@ describe('OpenApiClientUtils', (): void => {
     });
     it('returns a the value if mimeType is not a json mime and value is not a string.', (): void => {
       expect(serializeDataIfNeeded({ alpha: 'bet' }, 'text/plain')).toEqual({ alpha: 'bet' });
+    });
+  });
+
+  describe('jsonParamsToUrlString', (): void => {
+    it('serializes a JSON object into a query parameters string.', (): void => {
+      const params = {
+        param1: 'value1',
+        param2: [ 1, 2 ],
+        param3: {
+          param4: true,
+        },
+        param5: [
+          { param6: 'value6' },
+        ],
+      };
+      expect(jsonParamsToUrlString(params)).toBe(
+        'param1=value1&param2[]=1&param2[]=2&param3[param4]=true&param5[0][param6]=value6',
+      );
+    });
+  });
+
+  describe('escapeRegExp', (): void => {
+    it('escapes restricted characters in a string.', (): void => {
+      expect(escapeRegExp('[')).toBe('\\[');
+      expect(escapeRegExp(']')).toBe('\\]');
+      expect(escapeRegExp('.')).toBe('\\.');
+      expect(escapeRegExp('*')).toBe('\\*');
+      expect(escapeRegExp('+')).toBe('\\+');
+      expect(escapeRegExp('?')).toBe('\\?');
+      expect(escapeRegExp('^')).toBe('\\^');
+      expect(escapeRegExp('$')).toBe('\\$');
+      expect(escapeRegExp('{')).toBe('\\{');
+      expect(escapeRegExp('}')).toBe('\\}');
+      expect(escapeRegExp('(')).toBe('\\(');
+      expect(escapeRegExp(')')).toBe('\\)');
+      expect(escapeRegExp('|')).toBe('\\|');
     });
   });
 });
