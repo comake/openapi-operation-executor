@@ -18,6 +18,8 @@ export interface AxiosRequestParams {
   options: AxiosRequestConfig;
 }
 
+export type HeaderObject = Record<string, string>;
+
 const IGNORED_HEADER_PARAMETERS = new Set([ 'accept', 'content-type', 'authorization' ]);
 const PARAMETER_AND_SCHEME_LOCATIONS = {
   path: 'path',
@@ -76,11 +78,12 @@ export class OpenApiAxiosParamFactory {
     // eslint-disable-next-line @typescript-eslint/naming-convention
     const headerParameter = { 'Content-Type': 'application/json' };
     await this.setSecurityIfNeeded(headerParameter, args);
-    await this.addParametersToUrlAndHeader(headerParameter, args);
+    const requestBodyArgs: Record<string, any> = {};
+    await this.addParametersToUrlAndHeader(headerParameter, args, requestBodyArgs);
 
     return {
       url: `${this.pathName}${this.urlQuery ? `?${this.urlQuery}` : ''}`,
-      options: this.constructRequestOptions(options, headerParameter, args),
+      options: this.constructRequestOptions(options, headerParameter, requestBodyArgs),
     };
   }
 
@@ -90,7 +93,7 @@ export class OpenApiAxiosParamFactory {
    * @param headerParameter - The header parameter object
    * @param args - The operation arguments
    */
-  private async setSecurityIfNeeded(headerParameter: Record<string, string>, args: Record<string, any>): Promise<void> {
+  private async setSecurityIfNeeded(headerParameter: HeaderObject, args: Record<string, any>): Promise<void> {
     if (this.security && this.security.length > 0) {
       const oAuthSecurity = this.security.find((securityReq: SecurityRequirement): boolean => 'oAuth' in securityReq);
       if (oAuthSecurity && this.configuration.accessToken) {
@@ -112,7 +115,7 @@ export class OpenApiAxiosParamFactory {
    * @param args - The operation arguments
    */
   private async setApiKeyToHeaderOrArgsObject(
-    headerParameter: Record<string, string>,
+    headerParameter: HeaderObject,
     args: Record<string, any>,
   ): Promise<void> {
     const securityScheme = this.securitySchemes?.apiKey as APIKeySecurityScheme | undefined;
@@ -162,8 +165,9 @@ export class OpenApiAxiosParamFactory {
    * @param args - The operation arguments
    */
   private async addParametersToUrlAndHeader(
-    headerParameter: Record<string, string>,
+    headerParameter: HeaderObject,
     args: Record<string, any>,
+    requestBodyArgs: Record<string, any>,
   ): Promise<void> {
     if (this.parameters) {
       this.assertAllRequiredParametersArePresent(args);
@@ -182,9 +186,10 @@ export class OpenApiAxiosParamFactory {
           } else {
             throw new Error(`Parameters with "in" set to ${parameter.in} are not supported.`);
           }
-          // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
-          delete args[key];
+          break;
         }
+        // Argument was not used for query, header, or path, likely used in request body.
+        requestBodyArgs[key] = value;
       }
 
       this.urlQuery = jsonParamsToUrlString(queryParameters);
@@ -206,7 +211,7 @@ export class OpenApiAxiosParamFactory {
     }
   }
 
-  private addParameterToHeaders(headerParameter: Record<string, string>, parameterName: string, value: string): void {
+  private addParameterToHeaders(headerParameter: HeaderObject, parameterName: string, value: string): void {
     if (!IGNORED_HEADER_PARAMETERS.has(parameterName.toLowerCase())) {
       headerParameter[parameterName] = value;
     }
@@ -222,13 +227,13 @@ export class OpenApiAxiosParamFactory {
    *
    * @param options - The AxiosRequestConfig options object
    * @param headerParameter - The header parameter object
-   * @param args - The operation arguments
+   * @param requestBodyArgs - The request body arguments
    * @returns The request options object
    */
   private constructRequestOptions(
     options: AxiosRequestConfig,
-    headerParameter: any,
-    args?: any,
+    headerParameter: HeaderObject,
+    requestBodyArgs?: Record<string, any>,
   ): AxiosRequestConfig {
     const { baseOptions } = this.configuration;
     const requestOptions = {
@@ -241,7 +246,7 @@ export class OpenApiAxiosParamFactory {
         ...options.headers,
       },
     };
-    requestOptions.data = serializeDataIfNeeded(args, requestOptions.headers['Content-Type']);
+    requestOptions.data = serializeDataIfNeeded(requestBodyArgs, requestOptions.headers['Content-Type']);
     return requestOptions;
   }
 }
