@@ -76,20 +76,20 @@ describe('OpenApiClientUtils', (): void => {
   });
 
   describe('serializeDataIfNeeded', (): void => {
-    it('returns stringified empty object if no value is supplied and mimeType is a json mime.', (): void => {
-      expect(serializeDataIfNeeded(undefined, 'application/json')).toBe('{}');
+    it('returns undefined if no value is supplied.', (): void => {
+      expect(serializeDataIfNeeded(undefined)).toBeUndefined();
     });
-    it('returns an empty string if no value is supplied and mimeType is not a json mime.', (): void => {
-      expect(serializeDataIfNeeded(undefined, 'text/plain')).toBe('');
+    it('returns undefined if the value is an empty string.', (): void => {
+      expect(serializeDataIfNeeded('')).toBeUndefined();
     });
     it('returns the value if it is already a string.', (): void => {
-      expect(serializeDataIfNeeded('already a string', 'application/json')).toBe('already a string');
+      expect(serializeDataIfNeeded('already a string')).toBe('already a string');
     });
-    it('returns a stringified version of the value if mimeType is a json mime.', (): void => {
-      expect(serializeDataIfNeeded({ alpha: 'bet' }, 'application/json')).toBe('{"alpha":"bet"}');
+    it('returns undefined if the value is a non empty object.', (): void => {
+      expect(serializeDataIfNeeded({})).toBeUndefined();
     });
-    it('returns a the value if mimeType is not a json mime and value is not a string.', (): void => {
-      expect(serializeDataIfNeeded({ alpha: 'bet' }, 'text/plain')).toEqual({ alpha: 'bet' });
+    it('returns a stringified version of the value if it is a non empty object.', (): void => {
+      expect(serializeDataIfNeeded({ alpha: 'bet' })).toBe('{"alpha":"bet"}');
     });
   });
 

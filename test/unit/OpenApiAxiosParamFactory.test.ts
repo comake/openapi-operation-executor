@@ -121,7 +121,7 @@ describe('An OpenApiAxiosParamFactory', (): void => {
         );
         const response = await openApiAxiosParamFactory.createParams();
         expect(response.url).toBe('/example/api/path?apikey=12345');
-        expect(response.options.data).toBe('{}');
+        expect(response.options.data).toBeUndefined();
       });
 
     it(`adds the apikey query parameter if apiKey security,
@@ -135,7 +135,7 @@ describe('An OpenApiAxiosParamFactory', (): void => {
       );
       const response = await openApiAxiosParamFactory.createParams();
       expect(response.url).toBe('/example/api/path?apikey=12345');
-      expect(response.options.data).toBe('{}');
+      expect(response.options.data).toBeUndefined();
     });
 
     it('errors when an apiKey is specified with a security scheme set to a value that is not supported.',
@@ -194,8 +194,8 @@ describe('An OpenApiAxiosParamFactory', (): void => {
         Authorization: 'value3',
       });
       expect(response.url).toBe('/example/api/path');
-      expect(response.options.headers).toEqual({ 'Content-Type': 'application/json' });
-      expect(response.options.data).toBe('{}');
+      expect(response.options.headers).toEqual({});
+      expect(response.options.data).toBeUndefined();
     });
 
   it('adds query parameters to the url if parameters are specified with the "query" location.',
@@ -209,9 +209,9 @@ describe('An OpenApiAxiosParamFactory', (): void => {
         configuration,
       );
       const response = await openApiAxiosParamFactory.createParams({ param1: 'value' });
-      expect(response.options.headers).toEqual({ 'Content-Type': 'application/json' });
+      expect(response.options.headers).toEqual({});
       expect(response.url).toBe('/example/api/path?param1=value');
-      expect(response.options.data).toBe('{}');
+      expect(response.options.data).toBeUndefined();
     });
 
   it('replaces path templating in the url if parameters are specified with the "path" location.',
@@ -227,9 +227,9 @@ describe('An OpenApiAxiosParamFactory', (): void => {
         configuration,
       );
       const response = await openApiAxiosParamFactory.createParams({ id: 'value' });
-      expect(response.options.headers).toEqual({ 'Content-Type': 'application/json' });
+      expect(response.options.headers).toEqual({});
       expect(response.url).toBe('/example/api/path/value');
-      expect(response.options.data).toBe('{}');
+      expect(response.options.data).toBeUndefined();
     });
 
   it('errors when required parameters are not supplied.', async(): Promise<void> => {
@@ -281,13 +281,16 @@ describe('An OpenApiAxiosParamFactory', (): void => {
       expect(response.options.headers?.token).toBe('fghi');
     });
 
-  it('adds a serialized representation of the args in the data field if the operation does not use parameters.',
-    async(): Promise<void> => {
-      openApiAxiosParamFactory = new OpenApiAxiosParamFactory(
-        { ...operation, pathName, pathReqMethod },
-        configuration,
-      );
-      const response = await openApiAxiosParamFactory.createParams({ foo: 'bar' });
-      expect(response.options.data).toBe('{"foo":"bar"}');
-    });
+  it(`adds a serialized representation of the args in the data field
+    and sets the content-type header to application/json
+    if the operation does not use parameters.`,
+  async(): Promise<void> => {
+    openApiAxiosParamFactory = new OpenApiAxiosParamFactory(
+      { ...operation, pathName, pathReqMethod },
+      configuration,
+    );
+    const response = await openApiAxiosParamFactory.createParams({ foo: 'bar' });
+    expect(response.options.headers).toEqual({ 'Content-Type': 'application/json' });
+    expect(response.options.data).toBe('{"foo":"bar"}');
+  });
 });

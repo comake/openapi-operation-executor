@@ -30,9 +30,7 @@ describe('Operation execution', (): void => {
     expect(axios.request).toHaveBeenCalledWith({
       url: 'https://api.dropboxapi.com/2/files/get_metadata',
       method: 'post',
-      data: '{}',
       headers: {
-        'Content-Type': 'application/json',
         Authorization: 'Bearer token',
       },
     });

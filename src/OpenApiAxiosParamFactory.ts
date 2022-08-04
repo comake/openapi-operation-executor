@@ -77,7 +77,6 @@ export class OpenApiAxiosParamFactory {
     args: Record<string, any> = {},
     options: AxiosRequestConfig = {},
   ): Promise<AxiosRequestParams> {
-    this.headerParameters['Content-Type'] = 'application/json';
     await this.setSecurityIfNeeded();
     await this.addParametersToUrlAndHeader(args);
     const urlQuery = jsonParamsToUrlString(this.queryParameters);
@@ -218,13 +217,17 @@ export class OpenApiAxiosParamFactory {
       method: this.pathReqMethod,
       ...baseOptions,
       ...options,
+      data: serializeDataIfNeeded(this.requestBodyArgs),
       headers: {
         ...this.headerParameters,
         ...baseOptions?.headers,
         ...options.headers,
       },
     };
-    requestOptions.data = serializeDataIfNeeded(this.requestBodyArgs, requestOptions.headers['Content-Type']);
+
+    if (requestOptions.data) {
+      requestOptions.headers['Content-Type'] = 'application/json';
+    }
     return requestOptions;
   }
 }

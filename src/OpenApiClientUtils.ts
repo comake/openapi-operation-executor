@@ -69,17 +69,17 @@ export function isJsonMime(mime: string): boolean {
 
 /**
  * Helper that serializes data into a string if necessary.
- *
  * @param value - The value to be serialized
- * @param mimeType - The target mime type used to determine if the value should be serialized
  * @returns value or a serialized representation of value
  */
-export function serializeDataIfNeeded(value: any, mimeType: string): string {
+export function serializeDataIfNeeded(value: any): string | undefined {
   const isString = typeof value === 'string';
-  const needsSerialization = !isString && isJsonMime(mimeType);
-  return needsSerialization
-    ? JSON.stringify(value !== undefined ? value : {})
-    : value || '';
+  if (isString && value.length > 0) {
+    return value;
+  }
+  if (!isString && !(typeof value === 'object' && Object.keys(value).length === 0)) {
+    return JSON.stringify(value);
+  }
 }
 
 function arrayOrObjectParamToUrlString(

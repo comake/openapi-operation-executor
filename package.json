@@ -29,14 +29,18 @@
 		"email": "adler@comake.io"
 	},
 	"scripts": {
-		"build": "tsc",
+		"prebuild": "tsc",
+		"build": "browserify dist/index.js --s openapi-operation-executor -o dist/bundle.js",
 		"jest": "jest --coverage",
 		"lint": "eslint . --cache --ignore-path .gitignore --max-warnings 0",
 		"test": "npm run test:ts && npm run jest",
 		"test:ts": "tsc -p test --noEmit",
 		"prepare": "npm run build"
 	},
-	"main": "./dist/index.js",
+	"exports": {
+		".": "./dist/index.js",
+		"./dist/bundle.js": "./dist/bundle.js"
+	},
 	"types": "./dist/index.d.ts",
 	"files": [
 		"dist"
@@ -48,7 +52,8 @@
 	},
 	"dependencies": {
 		"@apidevtools/json-schema-ref-parser": "^9.0.9",
-		"axios": "^0.27.2"
+		"axios": "^0.27.2",
+		"browserify": "^17.0.0"
 	},
 	"devDependencies": {
 		"@commitlint/cli": "^17.0.3",
