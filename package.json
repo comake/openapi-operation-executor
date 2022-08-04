@@ -1,6 +1,6 @@
 {
 	"name": "@comake/openapi-operation-executor",
-	"version": "0.2.1",
+	"version": "0.3.0",
 	"description": "Sends web requests according to OpenApi specs",
 	"keywords": [
 		"openapi",
@@ -30,7 +30,7 @@
 	},
 	"scripts": {
 		"prebuild": "tsc",
-		"build": "browserify dist/index.js --s openapi-operation-executor -o dist/bundle.js",
+		"build": "browserify dist/index.js --s openapi-operation-executor -o dist/web.js",
 		"jest": "jest --coverage",
 		"lint": "eslint . --cache --ignore-path .gitignore --max-warnings 0",
 		"test": "npm run test:ts && npm run jest",
@@ -39,7 +39,7 @@
 	},
 	"exports": {
 		".": "./dist/index.js",
-		"./dist/bundle.js": "./dist/bundle.js"
+		"./dist/web.js": "./dist/web.js"
 	},
 	"types": "./dist/index.d.ts",
 	"files": [

@@ -19,8 +19,8 @@ yarn add @comake/openapi-operation-executor
 
 ## Usage
 
-Using ECMAScript Modules in Typescript:
-```js
+Using Typescript:
+```ts
 import { OpenApiOperationExecutor } from '@comake/openapi-operation-executor';
 import type { OpenApi } from '@comake/openapi-operation-executor';
 
@@ -38,6 +38,11 @@ const response = await executor.executeOperation(
   { accessToken: 'YOUR_ACCESS_TOKEN' },
   { arg: 'arg-value' },
 );
+```
+
+This library also offers a browser compatible version:
+```ts
+import { OpenApiOperationExecutor } from '@comake/openapi-operation-executor/dist/web.js';
 ```
 
 ## API
