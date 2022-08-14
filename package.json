@@ -1,6 +1,6 @@
 {
 	"name": "@comake/openapi-operation-executor",
-	"version": "0.3.1",
+	"version": "0.3.2",
 	"description": "Sends web requests according to OpenApi specs",
 	"keywords": [
 		"openapi",
@@ -41,7 +41,6 @@
 		".": "./dist/index.js",
 		"./dist/web.js": "./dist/web.js"
 	},
-  "main": "./dist/index.js",
 	"types": "./dist/index.d.ts",
 	"files": [
 		"dist"
