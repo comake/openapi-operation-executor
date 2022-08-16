@@ -40,10 +40,8 @@ const response = await executor.executeOperation(
 );
 ```
 
-This library also offers a browser compatible version:
-```ts
-import { OpenApiOperationExecutor } from '@comake/openapi-operation-executor/dist/web.js';
-```
+## Browser support
+To use OpenApiOperationExecutor in a browser, you'll need to use a bundling tool such as Webpack, Rollup, Parcel, or Browserify. Some bundlers may require a bit of configuration, such as setting browser: true in rollup-plugin-resolve.
 
 ## API
 
