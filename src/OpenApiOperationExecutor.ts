@@ -1,8 +1,21 @@
+/* eslint-disable @typescript-eslint/naming-convention */
+import crypto from 'crypto';
 import RefParser from '@apidevtools/json-schema-ref-parser';
 import type { AxiosRequestConfig, AxiosResponse } from 'axios';
 import { OpenApiAxiosParamFactory } from './OpenApiAxiosParamFactory';
 import { OpenApiClientAxiosApi } from './OpenApiClientAxiosApi';
-import type { Operation, OpenApi, DereferencedOpenApi } from './OpenApiSchemaConfiguration';
+import {
+  jsonParamsToUrlString,
+  base64URLEncode,
+  sha256,
+  baseOauthTokenOperationAndPathInfo,
+} from './OpenApiClientUtils';
+import type { Operation, OpenApi, DereferencedOpenApi, OAuth2SecurityScheme } from './OpenApiSchemaConfiguration';
+
+export interface CodeAuthorizationUrlResponse {
+  codeVerifier: string;
+  authorizationUrl: string;
+}
 
 export interface OpenApiClientConfiguration {
   /**
@@ -66,19 +79,70 @@ export class OpenApiOperationExecutor {
     args?: any,
     options?: AxiosRequestConfig,
   ): Promise<AxiosResponse> {
-    if (!this.openApiDescription) {
-      throw new Error('No Openapi description supplied.');
-    }
+    this.assertOpenApiDescriptionHasBeenSet();
 
     const basePath = this.constructBasePath();
     const operationAndPathInfo = this.getOperationWithPathInfoMatchingOperationId(operationId);
     const paramFactory = new OpenApiAxiosParamFactory(
       operationAndPathInfo,
       configuration,
-      this.openApiDescription.components?.securitySchemes,
+      this.openApiDescription!.components?.securitySchemes,
     );
     const openApiClientApi = new OpenApiClientAxiosApi(paramFactory, configuration.basePath ?? basePath);
     return openApiClientApi.sendRequest(args, options);
+  }
+
+  public async executeSecuritySchemeStage(
+    scheme: string,
+    flow: string,
+    stage: string,
+    args: any,
+  ): Promise<CodeAuthorizationUrlResponse | AxiosResponse> {
+    this.assertOpenApiDescriptionHasBeenSet();
+
+    const schemeConfig = this.openApiDescription!.components?.securitySchemes?.[scheme];
+    if (!schemeConfig) {
+      throw new Error(`No security scheme called ${scheme} found.`);
+    }
+    if (schemeConfig.type !== 'oauth2') {
+      throw new Error(`Execution of ${schemeConfig.type} security schemes is not supported.`);
+    }
+
+    const flowConfig = (schemeConfig as OAuth2SecurityScheme).flows[flow];
+    if (!flowConfig) {
+      throw new Error(`No flow called ${flow} found in the ${scheme} security scheme.`);
+    }
+
+    const stageUrl = (flowConfig as Record<string, string>)[stage];
+    if (!stageUrl || typeof stageUrl !== 'string') {
+      throw new Error(`No stage called ${stage} found in ${flow} flow of the ${scheme} security scheme.`);
+    }
+
+    if (stage === 'authorizationUrl') {
+      const codeVerifier = base64URLEncode(crypto.randomBytes(32));
+      return {
+        codeVerifier,
+        authorizationUrl: this.constructAuthorizationUrl(stageUrl, codeVerifier, args),
+      };
+    }
+
+    if (stage === 'tokenUrl') {
+      const paramFactory = new OpenApiAxiosParamFactory(
+        { ...baseOauthTokenOperationAndPathInfo, pathName: stageUrl },
+        {},
+        this.openApiDescription!.components?.securitySchemes,
+      );
+      const openApiClientApi = new OpenApiClientAxiosApi(paramFactory, '');
+      return openApiClientApi.sendRequest(args);
+    }
+
+    throw new Error(`${stage} stage found in ${flow} flow of the ${scheme} security scheme is not supported.`);
+  }
+
+  private assertOpenApiDescriptionHasBeenSet(): void {
+    if (!this.openApiDescription) {
+      throw new Error('No Openapi description supplied.');
+    }
   }
 
   private constructBasePath(): string {
@@ -113,5 +177,20 @@ export class OpenApiOperationExecutor {
     }
 
     throw new Error(`No OpenApi operation with operationId ${operationId} was found in the spec.`);
+  }
+
+  private constructAuthorizationUrl(
+    authorizationUrlBase: string,
+    codeVerifier: string,
+    args: Record<string, any>,
+  ): string {
+    const params = {
+      redirect_uri: args.redirect_uri,
+      client_id: args.client_id,
+      response_type: 'code',
+      code_challenge_method: 'S256',
+      code_challenge: base64URLEncode(sha256(codeVerifier)),
+    };
+    return `${authorizationUrlBase}?${jsonParamsToUrlString(params)}`;
   }
 }

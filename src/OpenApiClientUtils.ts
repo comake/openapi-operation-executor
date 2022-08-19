@@ -1,3 +1,7 @@
+/* eslint-disable require-unicode-regexp, no-div-regex, @typescript-eslint/naming-convention */
+import crypto from 'crypto';
+import type { Parameter, Responses } from './OpenApiSchemaConfiguration';
+
 export type PrimitiveJSONValue =
 | string
 | number
@@ -20,22 +24,6 @@ export class RequiredError extends Error {
 
   public constructor(public field: string, msg?: string) {
     super(msg);
-  }
-}
-
-/**
- * Throws a RequiredError if paramName or paramValue are not set.
- *
- * @param functionName - The name of the function who's parameters are being validated
- * @param paramName - The name of the parameter
- * @param paramValue - The value of the parameter
- */
-export function assertParamExists(functionName: string, paramName: string, paramValue: unknown): void {
-  if (paramValue === null || paramValue === undefined) {
-    throw new RequiredError(
-      paramName,
-      `Required parameter ${paramName} was null or undefined when calling ${functionName}.`,
-    );
   }
 }
 
@@ -141,3 +129,114 @@ export function jsonParamsToUrlString(params: NestedJSONValue, parentKeys: (stri
 export function escapeRegExp(string: string): string {
   return string.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
 }
+
+export function base64URLEncode(str: Buffer): string {
+  return str.toString('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=/g, '');
+}
+
+export function sha256(buffer: string): Buffer {
+  return crypto.createHash('sha256').update(buffer).digest();
+}
+
+export const baseOauthTokenOperationAndPathInfo = {
+  pathReqMethod: 'POST',
+  parameters: [
+    {
+      description: 'The code acquired by directing users to the authorizationUrl',
+      in: 'query',
+      name: 'code',
+      required: true,
+      schema: {
+        type: 'string',
+      },
+    },
+    {
+      description: `The grant type, which must be authorization_code for completing
+      a code flow or refresh_token for using a refresh token to get a new access token.`,
+      in: 'query',
+      name: 'grant_type',
+      required: true,
+      schema: {
+        type: 'string',
+      },
+    },
+    {
+      description: `A unique, long-lived token that can be used to request new
+      short-lived access tokens without direct interaction from a user in your app.`,
+      in: 'query',
+      name: 'refresh_token',
+      required: false,
+      schema: {
+        type: 'string',
+      },
+    },
+    {
+      description: `If credentials are passed in POST parameters, this parameter
+      should be present and should be the app's client_id.`,
+      in: 'query',
+      name: 'client_id',
+      required: false,
+      schema: {
+        type: 'string',
+      },
+    },
+    {
+      description: `If credentials are passed in POST parameters, this parameter
+      should be present and should be the app's secret.`,
+      in: 'query',
+      name: 'client_secret',
+      required: false,
+      schema: {
+        type: 'string',
+      },
+    },
+    {
+      description: `The redirect URI used to receive the authorization code from
+      the authorizationUrl, if provided. Only used to validate it matches the redirect
+      URI supplied to the authorizationUrl for the current authorization code.
+      It is not used to redirect again.`,
+      in: 'query',
+      name: 'redirect_uri',
+      required: false,
+      schema: {
+        type: 'string',
+      },
+    },
+    {
+      description: 'The client-generated string used to verify the encrypted code_challenge.',
+      in: 'query',
+      name: 'code_verifier',
+      required: false,
+      schema: {
+        minLength: 43,
+        maxLength: 128,
+        type: 'string',
+      },
+    },
+  ] as Parameter[],
+  responses: {
+    200: {
+      description: 'successful operation',
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: {
+              access_token: { type: 'string' },
+              scope: { type: 'string' },
+              expires_in: { type: 'integer' },
+              token_type: {
+                type: 'string',
+                enum: [ 'Bearer', 'DPoP', 'N_A' ],
+              },
+              id_token: { type: 'string' },
+            },
+          },
+        },
+      },
+    },
+  } as Responses,
+};

@@ -1,7 +1,6 @@
 /* eslint-disable jest/no-commented-out-tests */
 import {
   RequiredError,
-  assertParamExists,
   isJsonMime,
   serializeDataIfNeeded,
   jsonParamsToUrlString,
@@ -15,24 +14,6 @@ describe('OpenApiClientUtils', (): void => {
       expect(error.name).toBe('RequiredError');
       expect(error.field).toBe('exampleField');
       expect(error.message).toBe('example message');
-    });
-  });
-
-  describe('assertParamExists', (): void => {
-    it('throws a RequiredError if paramValue is null or undefined.', (): void => {
-      expect((): void => assertParamExists('exampleFn', 'exampleParam', null)).toThrow(RequiredError);
-      expect((): void => assertParamExists('exampleFn', 'exampleParam', null)).toThrow(
-        'Required parameter exampleParam was null or undefined when calling exampleFn.',
-      );
-      expect((): void => assertParamExists('exampleFn', 'exampleParam', undefined)).toThrow(RequiredError);
-      expect((): void => assertParamExists('exampleFn', 'exampleParam', undefined)).toThrow(
-        'Required parameter exampleParam was null or undefined when calling exampleFn.',
-      );
-    });
-    it('does not throw if paramValue is non null.', (): void => {
-      expect(assertParamExists('exampleFn', 'exampleParam', 'exampleValue')).toBeUndefined();
-      expect(assertParamExists('exampleFn', 'exampleParam', 1)).toBeUndefined();
-      expect(assertParamExists('exampleFn', 'exampleParam', true)).toBeUndefined();
     });
   });
 
