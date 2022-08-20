@@ -108,21 +108,22 @@ export class OpenApiOperationExecutor {
       throw new Error(`Execution of ${schemeConfig.type} security schemes is not supported.`);
     }
 
-    const flowConfig = (schemeConfig as OAuth2SecurityScheme).flows[flow];
+    const flowConfig = (schemeConfig as OAuth2SecurityScheme).flows[flow] as Record<string, any>;
     if (!flowConfig) {
       throw new Error(`No flow called ${flow} found in the ${scheme} security scheme.`);
     }
 
-    const stageUrl = (flowConfig as Record<string, string>)[stage];
+    const stageUrl = flowConfig[stage];
     if (!stageUrl || typeof stageUrl !== 'string') {
       throw new Error(`No stage called ${stage} found in ${flow} flow of the ${scheme} security scheme.`);
     }
 
     if (stage === 'authorizationUrl') {
+      const scopes = flowConfig.scopes ? Object.keys(flowConfig.scopes).join(' ') : undefined;
       const codeVerifier = base64URLEncode(crypto.randomBytes(32));
       return {
         codeVerifier,
-        authorizationUrl: this.constructAuthorizationUrl(stageUrl, codeVerifier, args),
+        authorizationUrl: this.constructAuthorizationUrl(stageUrl, codeVerifier, args, scopes),
       };
     }
 
@@ -183,14 +184,20 @@ export class OpenApiOperationExecutor {
     authorizationUrlBase: string,
     codeVerifier: string,
     args: Record<string, any>,
+    scopes?: string,
   ): string {
     const params = {
       redirect_uri: args.redirect_uri,
       client_id: args.client_id,
-      response_type: 'code',
-      code_challenge_method: 'S256',
-      code_challenge: base64URLEncode(sha256(codeVerifier)),
-    };
+      response_type: args.response_type,
+    } as any;
+    if (params.response_type === 'code') {
+      params.code_challenge_method = 'S256';
+      params.code_challenge = base64URLEncode(sha256(codeVerifier));
+    }
+    if (scopes) {
+      params.scope = scopes;
+    }
     return `${authorizationUrlBase}?${jsonParamsToUrlString(params)}`;
   }
 }
