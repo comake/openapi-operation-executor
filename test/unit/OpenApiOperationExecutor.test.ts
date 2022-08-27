@@ -229,12 +229,12 @@ describe('An OpenApiOperationExecutor', (): void => {
           'oAuth',
           'authorizationCode',
           'authorizationUrl',
-          { client_id: 'abc123', redirect_uri: 'https://example.com/redirect' },
+          { client_id: 'abc123', redirect_uri: 'https://example.com/redirect', response_type: 'code' },
         );
         expect(response.codeVerifier).toMatch(/[\d+-_/A-Za-z%]+/u);
         expect(response.authorizationUrl).toMatch(
           // eslint-disable-next-line max-len
-          /https:\/\/www.dropbox.com\/oauth2\/authorize\?redirect_uri=https%3A%2F%2Fexample.com%2Fredirect&client_id=abc123&response_type=code&code_challenge_method=S256&code_challenge=[\d+-_/A-Za-z%]+$/u,
+          /https:\/\/www.dropbox.com\/oauth2\/authorize\?redirect_uri=https%3A%2F%2Fexample.com%2Fredirect&client_id=abc123&response_type=code&code_challenge_method=S256&code_challenge=[\d+-_/A-Za-z%]+&scope=files.metadata.read$/u,
         );
       });
 
