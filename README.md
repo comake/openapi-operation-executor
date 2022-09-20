@@ -4,7 +4,7 @@
 
 This library provides a helper method to perform operations (web requests) specified by an [OpenAPI spec](https://www.openapis.org/).
 
-Every operation in an OpenAPI spec has a unique field used to identify it, called an operationId. The `executeOperation` method of this library allows a developer to send properly formatted requests to an API by supplying an OpenAPI spec (as JSON), the operationId of the operation they want to perform, and the proper arguments for that operation. This makes it so that the developer does not have to take the time to generate an SDK out of an OpenAPI spec every time they need to work with a new spec or every time one changes (for example using the [openapi npm package](https://github.com/openapi/openapi)). Not having an SDK installed per API they need to interact with also has the effect of reducing their application's bundle size.
+Every operation in an OpenAPI spec has a unique field used to identify it, called an operationId. The `executeOperation` method of this library allows a developer to send properly formatted requests to an API by supplying an OpenAPI spec (as JSON), the operationId of the operation they want to perform, and the proper arguments for that operation. This makes it so that the developer does not have to take the time to generate an SDK out of an OpenAPI spec every time they need to work with a new spec or every time one changes (for example using the [openapi npm package](https://github.com/openapi/openapi)). Not having an SDK installed per API they need to interact with also reduces their application's bundle size.
 
 ## Installation
 
@@ -76,6 +76,14 @@ export interface OpenApiClientConfiguration {
   | Promise<string>
   | ((name: string) => string) | ((name: string) => Promise<string>);
   /**
+  * Parameter for basic security
+  */
+  username?: string;
+  /**
+  * Parameter for basic security
+  */
+  password?: string;
+  /**
   * Parameter for oauth2 security
   * @param name - security name
   * @param scopes - oauth2 scope
@@ -94,7 +102,11 @@ export interface OpenApiClientConfiguration {
 }
 ```
 
-⚠️ This library currently only supports oAuth2 security via an `accessToken` or `apikey` authorization through a header or a query parameter. It automatically adds the header `Authorization: Bearer ACCESS_TOKEN` to requests if an `oAuth` security scheme is specified in the OpenApi spec. It automatically adds the `apikey` as a header or query parameter if an `apiKey` security scheme is specified in the OpenApi spec.
+⚠️ This library currently supports OpenApi security types `oauth2`, `apiKey`, and `http` with scheme `basic`. See [the OpenApi Spec](https://spec.openapis.org/oas/v3.1.0#security-scheme-object) for reference. 
+- When using `oauth2`type  security, if an `accessToken` string or function is supplied, a `Authorization` automatically header will be added with the value `Bearer ACCESS_TOKEN`.
+- When using `apiKey` type security, if an `apiKey` is supplied, it will be added to the header or query of the request depending on the OpenAPI spec's Security Schemes. This library does not work with apiKeys as cookies.
+- When using `http` security with the `basic` scheme, is a `username` and `password` are supplied, an `Authorization` header will be added with the value `Basic CREDENTIALS` where `CREDENTIALS` is the username and password concatenated with a colon character ":" and base64 encoded.
+- `mutualTLS` and `openIdConnect`security types are not supported.
 
 **Return value**
 
@@ -137,10 +149,3 @@ export interface AxiosResponse<T = any, D = any>  {
   request?: any;
 }
 ```
-
-## TODO
-- [ ] Add support for server variables when constructing the basePath.
-- [ ] Add support for authentication methods other than oAuth access tokens and header or query param apikeys (eg. username & password, and cookie apikey).
-- [ ] Add support for configuring the Content-Type header
-- [ ] Add support for constructing FormData for execution environments that do not support the FormData class
-- [ ] Add support for cookie parameters

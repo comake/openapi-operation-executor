@@ -7,6 +7,7 @@ describe('An OpenApiAxiosParamFactory', (): void => {
   let pathName: string;
   let parameters: Parameter[];
   let operation: any;
+  let schemes: Record<string, any>;
   let configuration: any;
   let openApiAxiosParamFactory: OpenApiAxiosParamFactory;
 
@@ -15,6 +16,11 @@ describe('An OpenApiAxiosParamFactory', (): void => {
     operation = {
       responses: {},
       operationId: 'testOperation',
+    };
+    schemes = {
+      oAuth: {
+        type: 'oauth2',
+      },
     };
     configuration = {};
     parameters = [];
@@ -28,6 +34,7 @@ describe('An OpenApiAxiosParamFactory', (): void => {
     openApiAxiosParamFactory = new OpenApiAxiosParamFactory(
       { ...operation, pathName, pathReqMethod, parameters },
       configuration,
+      schemes,
     );
     const response = await openApiAxiosParamFactory.createParams({ foo: 'bar' });
     expect(response).toBeInstanceOf(Object);
@@ -51,6 +58,20 @@ describe('An OpenApiAxiosParamFactory', (): void => {
         openApiAxiosParamFactory = new OpenApiAxiosParamFactory(
           { ...operation, pathName, pathReqMethod, parameters },
           configuration,
+          schemes,
+        );
+        const response = await openApiAxiosParamFactory.createParams();
+        expect(response.options.headers?.Authorization).toBeUndefined();
+      });
+
+    it('does not add the Authorization header if the security scheme is not specified.',
+      async(): Promise<void> => {
+        operation.security = [{ oAuth: [ 'example/scope' ]}];
+        configuration.accessToken = '12345';
+        openApiAxiosParamFactory = new OpenApiAxiosParamFactory(
+          { ...operation, pathName, pathReqMethod, parameters },
+          configuration,
+          {},
         );
         const response = await openApiAxiosParamFactory.createParams();
         expect(response.options.headers?.Authorization).toBeUndefined();
@@ -63,6 +84,7 @@ describe('An OpenApiAxiosParamFactory', (): void => {
         openApiAxiosParamFactory = new OpenApiAxiosParamFactory(
           { ...operation, pathName, pathReqMethod, parameters },
           configuration,
+          schemes,
         );
         const response = await openApiAxiosParamFactory.createParams();
         expect(response.options.headers?.Authorization).toBe('Bearer 12345');
@@ -75,15 +97,81 @@ describe('An OpenApiAxiosParamFactory', (): void => {
         openApiAxiosParamFactory = new OpenApiAxiosParamFactory(
           { ...operation, pathName, pathReqMethod, parameters },
           configuration,
+          schemes,
         );
         const response = await openApiAxiosParamFactory.createParams();
         expect(response.options.headers?.Authorization).toBe('Bearer 12345');
       });
   });
 
+  describe('basic security', (): void => {
+    beforeEach(async(): Promise<void> => {
+      schemes = {
+        basic: {
+          type: 'http',
+          scheme: 'basic',
+        },
+      };
+      operation.security = [{ basic: []}];
+    });
+
+    it('does not add the Authorization header if username is not defined.', async(): Promise<void> => {
+      configuration.password = 'abc123';
+      openApiAxiosParamFactory = new OpenApiAxiosParamFactory(
+        { ...operation, pathName, pathReqMethod, parameters },
+        configuration,
+        schemes,
+      );
+      const response = await openApiAxiosParamFactory.createParams();
+      expect(response.options.headers?.Authorization).toBeUndefined();
+    });
+
+    it('does not add the Authorization header if password is not defined.', async(): Promise<void> => {
+      configuration.username = 'adlerfaulkner';
+      openApiAxiosParamFactory = new OpenApiAxiosParamFactory(
+        { ...operation, pathName, pathReqMethod, parameters },
+        configuration,
+        schemes,
+      );
+      const response = await openApiAxiosParamFactory.createParams();
+      expect(response.options.headers?.Authorization).toBeUndefined();
+    });
+
+    it('does not add the Authorization header if the security scheme is not specified.',
+      async(): Promise<void> => {
+        configuration = { username: 'adlerfaulkner', password: 'abc123' };
+        openApiAxiosParamFactory = new OpenApiAxiosParamFactory(
+          { ...operation, pathName, pathReqMethod, parameters },
+          configuration,
+          {},
+        );
+        const response = await openApiAxiosParamFactory.createParams();
+        expect(response.options.headers?.Authorization).toBeUndefined();
+      });
+
+    it('adds the Authorization header if basic security scheme and username and password are specified.',
+      async(): Promise<void> => {
+        configuration = { username: 'adlerfaulkner', password: 'abc123' };
+        openApiAxiosParamFactory = new OpenApiAxiosParamFactory(
+          { ...operation, pathName, pathReqMethod, parameters },
+          configuration,
+          schemes,
+        );
+        const response = await openApiAxiosParamFactory.createParams();
+        expect(response.options.headers?.Authorization).toBe('Basic YWRsZXJmYXVsa25lcjphYmMxMjM');
+      });
+  });
+
   describe('apiKey security', (): void => {
     beforeEach(async(): Promise<void> => {
       operation.security = [{ apiKey: []}];
+      schemes = {
+        apiKey: {
+          type: 'apiKey',
+          in: 'header',
+          name: 'X-API-KEY',
+        },
+      };
     });
 
     it('adds the apikey header if apiKey security, an apiKey security scheme, and an apikey are specified.',
@@ -92,7 +180,7 @@ describe('An OpenApiAxiosParamFactory', (): void => {
         openApiAxiosParamFactory = new OpenApiAxiosParamFactory(
           { ...operation, pathName, pathReqMethod, parameters },
           configuration,
-          { apiKey: { in: 'header', name: 'X-API-KEY' }},
+          schemes,
         );
         const response = await openApiAxiosParamFactory.createParams();
         expect(response.options.headers?.['X-API-KEY']).toBe('12345');
@@ -104,7 +192,7 @@ describe('An OpenApiAxiosParamFactory', (): void => {
         openApiAxiosParamFactory = new OpenApiAxiosParamFactory(
           { ...operation, pathName, pathReqMethod, parameters },
           configuration,
-          { apiKey: { in: 'header', name: 'X-API-KEY' }},
+          schemes,
         );
         const response = await openApiAxiosParamFactory.createParams();
         expect(response.url).toBe('/example/api/path');
@@ -114,10 +202,11 @@ describe('An OpenApiAxiosParamFactory', (): void => {
     it('adds the apikey query parameter if apiKey security, an apiKey security scheme, and an apikey are specified.',
       async(): Promise<void> => {
         configuration.apiKey = '12345';
+        schemes = { apiKey: { in: 'query', name: 'apikey', type: 'apiKey' }};
         openApiAxiosParamFactory = new OpenApiAxiosParamFactory(
           { ...operation, pathName, pathReqMethod, parameters },
           configuration,
-          { apiKey: { in: 'query', name: 'apikey' }},
+          schemes,
         );
         const response = await openApiAxiosParamFactory.createParams();
         expect(response.url).toBe('/example/api/path?apikey=12345');
@@ -128,10 +217,11 @@ describe('An OpenApiAxiosParamFactory', (): void => {
       an apiKey security scheme, and an apikey function are specified.`,
     async(): Promise<void> => {
       configuration.apiKey = (): string => '12345';
+      schemes = { apiKey: { in: 'query', name: 'apikey', type: 'apiKey' }};
       openApiAxiosParamFactory = new OpenApiAxiosParamFactory(
         { ...operation, pathName, pathReqMethod, parameters },
         configuration,
-        { apiKey: { in: 'query', name: 'apikey' }},
+        schemes,
       );
       const response = await openApiAxiosParamFactory.createParams();
       expect(response.url).toBe('/example/api/path?apikey=12345');
@@ -141,10 +231,11 @@ describe('An OpenApiAxiosParamFactory', (): void => {
     it('errors when an apiKey is specified with a security scheme set to a value that is not supported.',
       async(): Promise<void> => {
         configuration.apiKey = '12345';
+        schemes = { apiKey: { in: 'cookie', name: 'apikey', type: 'apiKey' }};
         openApiAxiosParamFactory = new OpenApiAxiosParamFactory(
           { ...operation, pathName, pathReqMethod, parameters },
           configuration,
-          { apiKey: { in: 'cookie', name: 'apikey' }},
+          schemes,
         );
         await expect(openApiAxiosParamFactory.createParams())
           .rejects.toThrow(Error);
@@ -162,6 +253,7 @@ describe('An OpenApiAxiosParamFactory', (): void => {
       openApiAxiosParamFactory = new OpenApiAxiosParamFactory(
         { ...operation, pathName, pathReqMethod, parameters },
         configuration,
+        schemes,
       );
       const response = await openApiAxiosParamFactory.createParams({ 'X-SOME-HEADER': 'value' });
       expect(response.url).toBe('/example/api/path');
@@ -171,22 +263,14 @@ describe('An OpenApiAxiosParamFactory', (): void => {
   it('ignores Accept, Content-Type, and Authorization headers supplied as parameters.',
     async(): Promise<void> => {
       parameters = [
-        {
-          name: 'Accept',
-          in: 'header',
-        },
-        {
-          name: 'Content-Type',
-          in: 'header',
-        },
-        {
-          name: 'Authorization',
-          in: 'header',
-        },
+        { name: 'Accept', in: 'header' },
+        { name: 'Content-Type', in: 'header' },
+        { name: 'Authorization', in: 'header' },
       ];
       openApiAxiosParamFactory = new OpenApiAxiosParamFactory(
         { ...operation, pathName, pathReqMethod, parameters },
         configuration,
+        schemes,
       );
       const response = await openApiAxiosParamFactory.createParams({
         Accept: 'value1',
@@ -200,13 +284,11 @@ describe('An OpenApiAxiosParamFactory', (): void => {
 
   it('adds query parameters to the url if parameters are specified with the "query" location.',
     async(): Promise<void> => {
-      parameters = [{
-        name: 'param1',
-        in: 'query',
-      }];
+      parameters = [{ name: 'param1', in: 'query' }];
       openApiAxiosParamFactory = new OpenApiAxiosParamFactory(
         { ...operation, pathName, pathReqMethod, parameters },
         configuration,
+        schemes,
       );
       const response = await openApiAxiosParamFactory.createParams({ param1: 'value' });
       expect(response.options.headers).toEqual({});
@@ -217,14 +299,11 @@ describe('An OpenApiAxiosParamFactory', (): void => {
   it('replaces path templating in the url if parameters are specified with the "path" location.',
     async(): Promise<void> => {
       pathName = '/example/api/path/{id}';
-      parameters = [{
-        name: 'id',
-        in: 'path',
-        required: true,
-      }];
+      parameters = [{ name: 'id', in: 'path', required: true }];
       openApiAxiosParamFactory = new OpenApiAxiosParamFactory(
         { ...operation, pathName, pathReqMethod, parameters },
         configuration,
+        schemes,
       );
       const response = await openApiAxiosParamFactory.createParams({ id: 'value' });
       expect(response.options.headers).toEqual({});
@@ -233,14 +312,11 @@ describe('An OpenApiAxiosParamFactory', (): void => {
     });
 
   it('errors when required parameters are not supplied.', async(): Promise<void> => {
-    parameters = [{
-      name: 'param1',
-      in: 'query',
-      required: true,
-    }];
+    parameters = [{ name: 'param1', in: 'query', required: true }];
     openApiAxiosParamFactory = new OpenApiAxiosParamFactory(
       { ...operation, pathName, pathReqMethod, parameters },
       configuration,
+      schemes,
     );
     await expect(openApiAxiosParamFactory.createParams({}))
       .rejects.toThrow(Error);
@@ -249,13 +325,11 @@ describe('An OpenApiAxiosParamFactory', (): void => {
   });
 
   it('errors when parameters are used which specify a non supported location.', async(): Promise<void> => {
-    parameters = [{
-      name: 'param1',
-      in: 'cookie',
-    }];
+    parameters = [{ name: 'param1', in: 'cookie' }];
     openApiAxiosParamFactory = new OpenApiAxiosParamFactory(
       { ...operation, pathName, pathReqMethod, parameters },
       configuration,
+      schemes,
     );
     await expect(openApiAxiosParamFactory.createParams({ param1: 'value' }))
       .rejects.toThrow(Error);
@@ -272,6 +346,7 @@ describe('An OpenApiAxiosParamFactory', (): void => {
       openApiAxiosParamFactory = new OpenApiAxiosParamFactory(
         { ...operation, pathName, pathReqMethod, parameters },
         configuration,
+        schemes,
       );
       const response = await openApiAxiosParamFactory.createParams(
         {},
@@ -288,6 +363,7 @@ describe('An OpenApiAxiosParamFactory', (): void => {
     openApiAxiosParamFactory = new OpenApiAxiosParamFactory(
       { ...operation, pathName, pathReqMethod },
       configuration,
+      schemes,
     );
     const response = await openApiAxiosParamFactory.createParams({ foo: 'bar' });
     expect(response.options.headers).toEqual({ 'Content-Type': 'application/json' });

@@ -12,11 +12,11 @@ export class OpenApiClientAxiosApi {
 
   public constructor(
     paramFactory: OpenApiAxiosParamFactory,
-    basePath: string,
+    basePath?: string,
     axios?: AxiosInstance,
   ) {
     this.paramFactory = paramFactory;
-    this.basePath = basePath;
+    this.basePath = basePath ?? '';
     this.axios = axios ?? globalAxios;
   }
 
