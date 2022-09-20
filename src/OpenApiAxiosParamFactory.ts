@@ -1,16 +1,19 @@
 import type { AxiosRequestConfig } from 'axios';
+import type { OpenApiClientConfiguration } from './OpenApiClientConfiguration';
 import {
   serializeDataIfNeeded,
   jsonParamsToUrlString,
   escapeRegExp,
+  base64URLEncode,
 } from './OpenApiClientUtils';
 import type { JSONValue } from './OpenApiClientUtils';
-import type { OperationWithPathInfo, OpenApiClientConfiguration } from './OpenApiOperationExecutor';
+import type { OperationWithPathInfo } from './OpenApiOperationExecutor';
 import type {
   SecurityRequirement,
   APIKeySecurityScheme,
   DereferencedComponents,
   Parameter,
+  SecurityScheme,
 } from './OpenApiSchemaConfiguration';
 
 export interface AxiosRequestParams {
@@ -26,6 +29,11 @@ const PARAMETER_AND_SCHEME_LOCATIONS = {
   query: 'query',
   header: 'header',
 };
+
+const OAUTH_SCHEME_TYPE = 'oauth2';
+const API_KEY_SCHEME_TYPE = 'apiKey';
+const HTTP_SCHEME_TYPE = 'http';
+const BASIC_SCHEME_TYPE = 'basic';
 
 /**
  * Factory that generates an AxiosRequestParams object for an {@link OpenApiClientAxiosApi}
@@ -49,14 +57,14 @@ export class OpenApiAxiosParamFactory {
   private requestBodyArgs: Record<string, any> = {};
   private readonly pathReqMethod: string;
   private readonly security?: SecurityRequirement[];
-  private readonly securitySchemes?: DereferencedComponents['securitySchemes'];
+  private readonly securitySchemes: Required<DereferencedComponents>['securitySchemes'];
   private readonly configuration: OpenApiClientConfiguration;
   private readonly parameters?: Parameter[];
 
   public constructor(
     operationWithPathInfo: OperationWithPathInfo,
     configuration: OpenApiClientConfiguration,
-    securitySchemes?: DereferencedComponents['securitySchemes'],
+    securitySchemes: Required<DereferencedComponents>['securitySchemes'],
   ) {
     this.pathName = operationWithPathInfo.pathName;
     this.pathReqMethod = operationWithPathInfo.pathReqMethod;
@@ -91,17 +99,52 @@ export class OpenApiAxiosParamFactory {
    * Sets the security settings on the header or query parameters object if oAuth or apikey security is set.
    */
   private async setSecurityIfNeeded(): Promise<void> {
-    if (this.security && this.security.length > 0) {
-      const oAuthSecurity = this.security.find((securityReq: SecurityRequirement): boolean => 'oAuth' in securityReq);
-      if (oAuthSecurity && this.configuration.accessToken) {
-        await this.setOAuthToHeaderObject(this.headerParameters, 'oAuth', oAuthSecurity.oAuth);
-        return;
-      }
+    const oAuthSecurity = this.findOauthSecurityRequirement();
+    if (oAuthSecurity && this.configuration.accessToken) {
+      const schemeName = Object.keys(oAuthSecurity)[0];
+      await this.setOAuthToHeaderObject(this.headerParameters, schemeName, oAuthSecurity[schemeName]);
+      return;
+    }
 
-      const apiKeySecurity = this.security.find((securityReq: SecurityRequirement): boolean => 'apiKey' in securityReq);
-      if (apiKeySecurity && this.configuration.apiKey) {
-        await this.setApiKeyToHeaderOrQueryObject();
-      }
+    const basicSecurity = this.findBasicSecurityRequirement();
+    if (basicSecurity && this.configuration.username && this.configuration.password) {
+      await this.setBasicAuthToHeaderObject(this.headerParameters);
+      return;
+    }
+
+    const apiKeySecurity = this.findApiKeySecurityRequirement();
+    if (apiKeySecurity && this.configuration.apiKey) {
+      await this.setApiKeyToHeaderOrQueryObject();
+    }
+  }
+
+  private findBasicSecurityRequirement(): SecurityRequirement | undefined {
+    return this.findSecurityRequirementMatchingScheme(
+      (scheme: SecurityScheme): boolean => scheme.type === HTTP_SCHEME_TYPE && scheme.scheme === BASIC_SCHEME_TYPE,
+    );
+  }
+
+  private findOauthSecurityRequirement(): SecurityRequirement | undefined {
+    return this.findSecurityRequirementMatchingScheme(
+      (scheme: SecurityScheme): boolean => scheme.type === OAUTH_SCHEME_TYPE,
+    );
+  }
+
+  private findApiKeySecurityRequirement(): SecurityRequirement | undefined {
+    return this.findSecurityRequirementMatchingScheme(
+      (scheme: SecurityScheme): boolean => scheme.type === API_KEY_SCHEME_TYPE,
+    );
+  }
+
+  private findSecurityRequirementMatchingScheme(
+    schemeMatcher: (sheme: SecurityScheme) => boolean,
+  ): SecurityRequirement | undefined {
+    if (this.security) {
+      return this.security.find((securityReq: SecurityRequirement): boolean => {
+        const schemeName = Object.keys(securityReq)[0];
+        const scheme = this.securitySchemes[schemeName];
+        return scheme ? schemeMatcher(scheme) : false;
+      });
     }
   }
 
@@ -109,7 +152,7 @@ export class OpenApiAxiosParamFactory {
    * Sets an api key field of an object to the apiKey value in the {@link OpenApiClientConfiguration}.
    */
   private async setApiKeyToHeaderOrQueryObject(): Promise<void> {
-    const securityScheme = this.securitySchemes?.apiKey as APIKeySecurityScheme | undefined;
+    const securityScheme = this.securitySchemes.apiKey as APIKeySecurityScheme | undefined;
     if (securityScheme) {
       const apiKey = await this.getApiKey(securityScheme.name);
       if (securityScheme.in === PARAMETER_AND_SCHEME_LOCATIONS.header) {
@@ -129,7 +172,7 @@ export class OpenApiAxiosParamFactory {
   }
 
   /**
-   * Helper that sets the Authorization field of an object. Generates an access token
+   * Helper that sets the Bearer type Authorization field of an object. Generates an access token
    * if the configuration specifies an access token generation function, just uses the value if not.
    *
    * @param headerParameters - The header parameter object
@@ -145,6 +188,19 @@ export class OpenApiAxiosParamFactory {
       ? await this.configuration.accessToken(name, scopes)
       : await this.configuration.accessToken;
     headerParameters.Authorization = `Bearer ${localVarAccessTokenValue}`;
+  }
+
+  /**
+   * Helper that sets the Basic type Authorization field of an object.
+   * Encodes the Basic authentication credentials as base64.
+   *
+   * @param headerParameters - The header parameter object
+   */
+  private async setBasicAuthToHeaderObject(headerParameters: any): Promise<void> {
+    const credentials = `${this.configuration.username}:${this.configuration.password}`;
+    const credentialsBuffer = Buffer.from(credentials, 'utf-8');
+    const encodedCredentials = base64URLEncode(credentialsBuffer);
+    headerParameters.Authorization = `Basic ${encodedCredentials}`;
   }
 
   /**

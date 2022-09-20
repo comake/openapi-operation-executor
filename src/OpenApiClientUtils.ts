@@ -141,7 +141,69 @@ export function sha256(buffer: string): Buffer {
   return crypto.createHash('sha256').update(buffer).digest();
 }
 
-export const baseOauthTokenOperationAndPathInfo = {
+export const securityStageOperationSecuritySchemes = {
+  basic: {
+    type: 'http',
+    scheme: 'basic',
+  },
+};
+
+export const clientCredentialsTokenOperationAndPathInfo = {
+  pathReqMethod: 'POST',
+  security: { basic: []},
+  parameters: [
+    {
+      description: 'The grant type.',
+      in: 'query',
+      name: 'grant_type',
+      required: true,
+      schema: {
+        type: 'string',
+      },
+    },
+    {
+      description: 'The Oauth scopes requested from the provider',
+      in: 'query',
+      name: 'scope',
+      required: true,
+      schema: {
+        type: 'string',
+      },
+    },
+    {
+      description: 'The authorization header.',
+      in: 'header',
+      name: 'Authorization',
+      required: true,
+      schema: {
+        type: 'string',
+      },
+    },
+  ] as Parameter[],
+  responses: {
+    200: {
+      description: 'Successful operation',
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: {
+              access_token: { type: 'string' },
+              scope: { type: 'string' },
+              expires_in: { type: 'integer' },
+              token_type: {
+                type: 'string',
+                enum: [ 'Bearer', 'DPoP', 'N_A' ],
+              },
+            },
+          },
+        },
+      },
+    },
+  } as Responses,
+};
+
+export const pkceOauthOperationAndPathInfo = {
   pathReqMethod: 'POST',
   parameters: [
     {
@@ -219,7 +281,7 @@ export const baseOauthTokenOperationAndPathInfo = {
   ] as Parameter[],
   responses: {
     200: {
-      description: 'successful operation',
+      description: 'Successful operation',
       content: {
         'application/json': {
           schema: {
@@ -240,3 +302,4 @@ export const baseOauthTokenOperationAndPathInfo = {
     },
   } as Responses,
 };
+

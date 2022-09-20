@@ -37,4 +37,13 @@ describe('An OpenApiAxiosRequestFactory', (): void => {
       url: '/example/base/path/api/endpoint',
     });
   });
+
+  it('has no base path if one is not supplied.', async(): Promise<void> => {
+    openApiClientAxiosApi = new OpenApiClientAxiosApi(paramsFactory);
+    await openApiClientAxiosApi.sendRequest();
+    expect(globalAxios.request).toHaveBeenCalledWith({
+      foo: 'bar',
+      url: '/api/endpoint',
+    });
+  });
 });

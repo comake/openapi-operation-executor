@@ -4,60 +4,30 @@ import RefParser from '@apidevtools/json-schema-ref-parser';
 import type { AxiosRequestConfig, AxiosResponse } from 'axios';
 import { OpenApiAxiosParamFactory } from './OpenApiAxiosParamFactory';
 import { OpenApiClientAxiosApi } from './OpenApiClientAxiosApi';
+import type { OpenApiClientConfiguration } from './OpenApiClientConfiguration';
 import {
-  jsonParamsToUrlString,
   base64URLEncode,
+  jsonParamsToUrlString,
+  pkceOauthOperationAndPathInfo,
+  clientCredentialsTokenOperationAndPathInfo,
+  securityStageOperationSecuritySchemes,
   sha256,
-  baseOauthTokenOperationAndPathInfo,
 } from './OpenApiClientUtils';
-import type { Operation, OpenApi, DereferencedOpenApi, OAuth2SecurityScheme } from './OpenApiSchemaConfiguration';
+import type {
+  Operation,
+  OpenApi,
+  DereferencedOpenApi,
+  OAuth2SecurityScheme,
+  SecurityScheme,
+} from './OpenApiSchemaConfiguration';
 
 export interface CodeAuthorizationUrlResponse {
   codeVerifier: string;
   authorizationUrl: string;
 }
 
-export interface OpenApiClientConfiguration {
-  /**
-  * Parameter for apiKey security
-  * @param name - security name
-  */
-  apiKey?: string
-  | Promise<string>
-  | ((name: string) => string) | ((name: string) => Promise<string>);
-  /**
-  * TODO: Add support for username and password security.
-  * Parameter for basic security
-  */
-  // username?: string;
-  /**
-  * Parameter for basic security
-  */
-  // password?: string;
-  /**
-  * Parameter for oauth2 security
-  * @param name - security name
-  * @param scopes - oauth2 scope
-  */
-  accessToken?: string | Promise<string>
-  | ((name?: string, scopes?: string[]) => string)
-  | ((name?: string, scopes?: string[]) => Promise<string>);
-  /**
-  * Override base path
-  */
-  basePath?: string;
-  /**
-  * Base options for axios calls
-  */
-  baseOptions?: any;
-  /**
-  * TODO: Add support for formDataCtor.
-  * The FormData constructor that will be used to create multipart form data
-  * requests. You can inject this here so that execution environments that
-  * do not support the FormData class can still run the generated client.
-  */
-  // formDataCtor?: new () => any;
-}
+export type OpenApiClientConfigurationWithBasePath =
+  Omit<OpenApiClientConfiguration, 'basePath'> & Required<Pick<OpenApiClientConfiguration, 'basePath'>>;
 
 export interface PathInfo {
   pathName: string;
@@ -65,6 +35,10 @@ export interface PathInfo {
 }
 
 export type OperationWithPathInfo = Operation & PathInfo;
+
+const AUTHORIZATION_URL_STAGE = 'authorizationUrl';
+const SUPPORTED_SECURITY_OPERATION_STAGES = new Set([ 'tokenUrl' ]);
+const CLIENT_CREDENTIALS_FLOW = 'clientCredentials';
 
 export class OpenApiOperationExecutor {
   private openApiDescription?: DereferencedOpenApi;
@@ -80,15 +54,30 @@ export class OpenApiOperationExecutor {
     options?: AxiosRequestConfig,
   ): Promise<AxiosResponse> {
     this.assertOpenApiDescriptionHasBeenSet();
-
-    const basePath = this.constructBasePath();
+    configuration.basePath ||= this.constructBasePath();
     const operationAndPathInfo = this.getOperationWithPathInfoMatchingOperationId(operationId);
+    return this.sendOperationRequest(
+      operationAndPathInfo,
+      configuration,
+      this.openApiDescription!.components?.securitySchemes ?? {},
+      args,
+      options,
+    );
+  }
+
+  private async sendOperationRequest(
+    operationAndPathInfo: OperationWithPathInfo,
+    configuration: OpenApiClientConfiguration,
+    securitySchemes: Record<string, SecurityScheme>,
+    args?: any,
+    options?: AxiosRequestConfig,
+  ): Promise<AxiosResponse> {
     const paramFactory = new OpenApiAxiosParamFactory(
       operationAndPathInfo,
       configuration,
-      this.openApiDescription!.components?.securitySchemes,
+      securitySchemes,
     );
-    const openApiClientApi = new OpenApiClientAxiosApi(paramFactory, configuration.basePath ?? basePath);
+    const openApiClientApi = new OpenApiClientAxiosApi(paramFactory, configuration.basePath);
     return openApiClientApi.sendRequest(args, options);
   }
 
@@ -96,7 +85,8 @@ export class OpenApiOperationExecutor {
     scheme: string,
     flow: string,
     stage: string,
-    args: any,
+    configuration: OpenApiClientConfiguration,
+    args: Record<string, any>,
   ): Promise<CodeAuthorizationUrlResponse | AxiosResponse> {
     this.assertOpenApiDescriptionHasBeenSet();
 
@@ -113,28 +103,23 @@ export class OpenApiOperationExecutor {
       throw new Error(`No flow called ${flow} found in the ${scheme} security scheme.`);
     }
 
-    const stageUrl = flowConfig[stage];
-    if (!stageUrl || typeof stageUrl !== 'string') {
+    if (!flowConfig[stage] || typeof flowConfig[stage] !== 'string') {
       throw new Error(`No stage called ${stage} found in ${flow} flow of the ${scheme} security scheme.`);
     }
 
-    if (stage === 'authorizationUrl') {
-      const scopes = flowConfig.scopes ? Object.keys(flowConfig.scopes).join(' ') : undefined;
-      const codeVerifier = base64URLEncode(crypto.randomBytes(32));
-      return {
-        codeVerifier,
-        authorizationUrl: this.constructAuthorizationUrl(stageUrl, codeVerifier, args, scopes),
-      };
+    if (stage === AUTHORIZATION_URL_STAGE) {
+      return this.constructAuthorizationUrlStageInfo(flowConfig.authorizationUrl, args, flowConfig.scopes);
     }
 
-    if (stage === 'tokenUrl') {
-      const paramFactory = new OpenApiAxiosParamFactory(
-        { ...baseOauthTokenOperationAndPathInfo, pathName: stageUrl },
-        {},
-        this.openApiDescription!.components?.securitySchemes,
+    if (SUPPORTED_SECURITY_OPERATION_STAGES.has(stage)) {
+      const flowOperationInfo = this.getOperationInfoForFlow(flow);
+      const operationAndPathInfo = { ...flowOperationInfo, pathName: flowConfig[stage] };
+      return this.sendOperationRequest(
+        operationAndPathInfo,
+        configuration,
+        securityStageOperationSecuritySchemes,
+        args,
       );
-      const openApiClientApi = new OpenApiClientAxiosApi(paramFactory, '');
-      return openApiClientApi.sendRequest(args);
     }
 
     throw new Error(`${stage} stage found in ${flow} flow of the ${scheme} security scheme is not supported.`);
@@ -144,6 +129,48 @@ export class OpenApiOperationExecutor {
     if (!this.openApiDescription) {
       throw new Error('No Openapi description supplied.');
     }
+  }
+
+  private constructAuthorizationUrlStageInfo(
+    authorizationUrlBase: string,
+    args: Record<string, any>,
+    scopes?: string[],
+  ): CodeAuthorizationUrlResponse {
+    const codeVerifier = base64URLEncode(crypto.randomBytes(32));
+    const authorizationUrl = this.constructAuthorizationUrl(
+      authorizationUrlBase,
+      codeVerifier,
+      args,
+      scopes,
+    );
+    return { codeVerifier, authorizationUrl };
+  }
+
+  private constructAuthorizationUrl(
+    authorizationUrlBase: string,
+    codeVerifier: string,
+    args: Record<string, any>,
+    scopes?: string[],
+  ): string {
+    const params = {
+      redirect_uri: args.redirect_uri,
+      client_id: args.client_id,
+      response_type: args.response_type,
+    } as any;
+    if (params.response_type === 'code') {
+      params.code_challenge_method = 'S256';
+      params.code_challenge = base64URLEncode(sha256(codeVerifier));
+    }
+    if (scopes) {
+      params.scope = Object.keys(scopes).join(' ');
+    }
+    return `${authorizationUrlBase}?${jsonParamsToUrlString(params)}`;
+  }
+
+  private getOperationInfoForFlow(flow: string): Operation & Pick<OperationWithPathInfo, 'pathReqMethod'> {
+    return flow === CLIENT_CREDENTIALS_FLOW
+      ? clientCredentialsTokenOperationAndPathInfo
+      : pkceOauthOperationAndPathInfo;
   }
 
   private constructBasePath(): string {
@@ -178,26 +205,5 @@ export class OpenApiOperationExecutor {
     }
 
     throw new Error(`No OpenApi operation with operationId ${operationId} was found in the spec.`);
-  }
-
-  private constructAuthorizationUrl(
-    authorizationUrlBase: string,
-    codeVerifier: string,
-    args: Record<string, any>,
-    scopes?: string,
-  ): string {
-    const params = {
-      redirect_uri: args.redirect_uri,
-      client_id: args.client_id,
-      response_type: args.response_type,
-    } as any;
-    if (params.response_type === 'code') {
-      params.code_challenge_method = 'S256';
-      params.code_challenge = base64URLEncode(sha256(codeVerifier));
-    }
-    if (scopes) {
-      params.scope = scopes;
-    }
-    return `${authorizationUrlBase}?${jsonParamsToUrlString(params)}`;
   }
 }
