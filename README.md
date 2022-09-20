@@ -106,6 +106,7 @@ export interface OpenApiClientConfiguration {
 - When using `oauth2`type  security, if an `accessToken` string or function is supplied, a `Authorization` automatically header will be added with the value `Bearer ACCESS_TOKEN`.
 - When using `apiKey` type security, if an `apiKey` is supplied, it will be added to the header or query of the request depending on the OpenAPI spec's Security Schemes. This library does not work with apiKeys as cookies.
 - When using `http` security with the `basic` scheme, is a `username` and `password` are supplied, an `Authorization` header will be added with the value `Basic CREDENTIALS` where `CREDENTIALS` is the username and password concatenated with a colon character ":" and base64 encoded.
+- `mutualTLS` and `openIdConnect`security types are not supported.
 
 **Return value**
 

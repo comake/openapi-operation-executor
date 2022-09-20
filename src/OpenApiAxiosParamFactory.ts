@@ -30,24 +30,27 @@ const PARAMETER_AND_SCHEME_LOCATIONS = {
   header: 'header',
 };
 
-const OAUTH_SCHEME_TYPE = 'oauth2';
-const API_KEY_SCHEME_TYPE = 'apiKey';
-const HTTP_SCHEME_TYPE = 'http';
+const SECURITY_TYPES = {
+  oauth2: 'oauth2',
+  apiKey: 'apiKey',
+  http: 'http',
+};
+
 const BASIC_SCHEME_TYPE = 'basic';
 
 /**
  * Factory that generates an AxiosRequestParams object for an {@link OpenApiClientAxiosApi}
  * based on the configuration of an OpenApi Operation.
  *
- * Note: OAuth security schemes must be titled `oauth` and apiKey security schemes must be titled `apiKey`.
- *
  * Not yet supported:
   * - Operation parameters set through cookies using the `in` field set to `cookies`
   * - Implementation of the `style` and `explode` parameter fields to change the way parameter values are serialized
-  * - Security schemes other those with `type` set to `oAuth` or `apiKey`
+  * - Security schemes other those with `type` set to `oAuth`, `apiKey`, or `http` with scheme `basic`.
+  *   Eg `mutualTLS` and `openIdConnect` are not supported
   * - Validation of the supplied args used in a `requestBody`
   * - The `callbacks` field on an operation
   * - Supplying an alternate server through the `servers` field
+  * - Supplying server variables
   *
  */
 export class OpenApiAxiosParamFactory {
@@ -120,19 +123,19 @@ export class OpenApiAxiosParamFactory {
 
   private findBasicSecurityRequirement(): SecurityRequirement | undefined {
     return this.findSecurityRequirementMatchingScheme(
-      (scheme: SecurityScheme): boolean => scheme.type === HTTP_SCHEME_TYPE && scheme.scheme === BASIC_SCHEME_TYPE,
+      (scheme: SecurityScheme): boolean => scheme.type === SECURITY_TYPES.http && scheme.scheme === BASIC_SCHEME_TYPE,
     );
   }
 
   private findOauthSecurityRequirement(): SecurityRequirement | undefined {
     return this.findSecurityRequirementMatchingScheme(
-      (scheme: SecurityScheme): boolean => scheme.type === OAUTH_SCHEME_TYPE,
+      (scheme: SecurityScheme): boolean => scheme.type === SECURITY_TYPES.oauth2,
     );
   }
 
   private findApiKeySecurityRequirement(): SecurityRequirement | undefined {
     return this.findSecurityRequirementMatchingScheme(
-      (scheme: SecurityScheme): boolean => scheme.type === API_KEY_SCHEME_TYPE,
+      (scheme: SecurityScheme): boolean => scheme.type === SECURITY_TYPES.apiKey,
     );
   }
 
