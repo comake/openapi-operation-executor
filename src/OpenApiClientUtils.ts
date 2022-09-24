@@ -150,7 +150,7 @@ export const securityStageOperationSecuritySchemes = {
 
 export const clientCredentialsTokenOperationAndPathInfo = {
   pathReqMethod: 'POST',
-  security: { basic: []},
+  security: [{ basic: []}],
   parameters: [
     {
       description: 'The grant type.',
@@ -165,15 +165,6 @@ export const clientCredentialsTokenOperationAndPathInfo = {
       description: 'The Oauth scopes requested from the provider',
       in: 'query',
       name: 'scope',
-      required: true,
-      schema: {
-        type: 'string',
-      },
-    },
-    {
-      description: 'The authorization header.',
-      in: 'header',
-      name: 'Authorization',
       required: true,
       schema: {
         type: 'string',
