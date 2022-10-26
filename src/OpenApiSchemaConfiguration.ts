@@ -68,7 +68,7 @@ export interface DereferencedOpenApi {
   servers?: Server[];
   security?: SecurityRequirement[];
   tags?: Tag[];
-  paths: Paths;
+  paths: DereferencedPaths;
   components?: DereferencedComponents;
 }
 
@@ -146,6 +146,8 @@ export interface Tag {
   [k: string]: unknown;
 }
 export type Paths = Record<string, PathItem>;
+
+export type DereferencedPaths = Record<string, DereferencedPathItem>;
 /**
  * This interface was referenced by `Paths`'s JSON-Schema definition
  * via the `patternProperty` "^\/".
@@ -171,6 +173,14 @@ export interface DereferencedPathItem {
   description?: string;
   servers?: Server[];
   parameters?: Parameter[];
+  get?: DereferencedOperation;
+  post?: DereferencedOperation;
+  patch?: DereferencedOperation;
+  put?: DereferencedOperation;
+  delete?: DereferencedOperation;
+  options?: DereferencedOperation;
+  head?: DereferencedOperation;
+  trace?: DereferencedOperation;
 }
 // Example and examples are mutually exclusive
 export type ExampleXORExamples = Record<string, unknown>;
@@ -205,6 +215,26 @@ export interface Operation {
   [k: string]: unknown;
 }
 
+export interface DereferencedOperation {
+  tags?: string[];
+  summary?: string;
+  description?: string;
+  externalDocs?: ExternalDocumentation;
+  operationId?: string;
+  parameters?: Parameter[];
+  requestBody?: RequestBody;
+  responses: DereferencedResponses;
+  callbacks?: Record<string, Callback>;
+  deprecated?: boolean;
+  security?: SecurityRequirement[];
+  servers?: Server[];
+  /**
+   * This interface was referenced by `Operation`'s JSON-Schema definition
+   * via the `patternProperty` "^x-".
+   */
+  [k: string]: unknown;
+}
+
 export interface RequestBody {
   description?: string;
   content: Record<string, MediaType>;
@@ -219,6 +249,11 @@ export interface RequestBody {
 export interface Responses {
   default?: Response | Reference;
 }
+
+export interface DereferencedResponses {
+  default?: DereferencedResponse;
+}
+
 export interface Response {
   description: string;
   headers?: Record<string, Header | Reference>;

@@ -1,11 +1,12 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import { OpenApiAxiosParamFactory } from '../../src/OpenApiAxiosParamFactory';
-import type { Parameter } from '../../src/OpenApiSchemaConfiguration';
+import type { Parameter, RequestBody } from '../../src/OpenApiSchemaConfiguration';
 
 describe('An OpenApiAxiosParamFactory', (): void => {
   const pathReqMethod = 'GET';
   let pathName: string;
   let parameters: Parameter[];
+  let requestBody: RequestBody;
   let operation: any;
   let schemes: Record<string, any>;
   let configuration: any;
@@ -32,7 +33,7 @@ describe('An OpenApiAxiosParamFactory', (): void => {
       headers: { token: 'abcd' },
     };
     openApiAxiosParamFactory = new OpenApiAxiosParamFactory(
-      { ...operation, pathName, pathReqMethod, parameters },
+      { ...operation, pathName, pathReqMethod, parameters, requestBody },
       configuration,
       schemes,
     );
@@ -56,7 +57,7 @@ describe('An OpenApiAxiosParamFactory', (): void => {
     it('does not add the Authorization header if oAuth security scopes or an accessToken are not specified.',
       async(): Promise<void> => {
         openApiAxiosParamFactory = new OpenApiAxiosParamFactory(
-          { ...operation, pathName, pathReqMethod, parameters },
+          { ...operation, pathName, pathReqMethod, parameters, requestBody },
           configuration,
           schemes,
         );
@@ -69,7 +70,7 @@ describe('An OpenApiAxiosParamFactory', (): void => {
         operation.security = [{ oAuth: [ 'example/scope' ]}];
         configuration.accessToken = '12345';
         openApiAxiosParamFactory = new OpenApiAxiosParamFactory(
-          { ...operation, pathName, pathReqMethod, parameters },
+          { ...operation, pathName, pathReqMethod, parameters, requestBody },
           configuration,
           {},
         );
@@ -82,7 +83,7 @@ describe('An OpenApiAxiosParamFactory', (): void => {
         operation.security = [{ oAuth: [ 'example/scope' ]}];
         configuration.accessToken = '12345';
         openApiAxiosParamFactory = new OpenApiAxiosParamFactory(
-          { ...operation, pathName, pathReqMethod, parameters },
+          { ...operation, pathName, pathReqMethod, parameters, requestBody },
           configuration,
           schemes,
         );
@@ -95,7 +96,7 @@ describe('An OpenApiAxiosParamFactory', (): void => {
         operation.security = [{ oAuth: [ 'example/scope' ]}];
         configuration.accessToken = (): string => '12345';
         openApiAxiosParamFactory = new OpenApiAxiosParamFactory(
-          { ...operation, pathName, pathReqMethod, parameters },
+          { ...operation, pathName, pathReqMethod, parameters, requestBody },
           configuration,
           schemes,
         );
@@ -118,7 +119,7 @@ describe('An OpenApiAxiosParamFactory', (): void => {
     it('does not add the Authorization header if username is not defined.', async(): Promise<void> => {
       configuration.password = 'abc123';
       openApiAxiosParamFactory = new OpenApiAxiosParamFactory(
-        { ...operation, pathName, pathReqMethod, parameters },
+        { ...operation, pathName, pathReqMethod, parameters, requestBody },
         configuration,
         schemes,
       );
@@ -129,7 +130,7 @@ describe('An OpenApiAxiosParamFactory', (): void => {
     it('does not add the Authorization header if password is not defined.', async(): Promise<void> => {
       configuration.username = 'adlerfaulkner';
       openApiAxiosParamFactory = new OpenApiAxiosParamFactory(
-        { ...operation, pathName, pathReqMethod, parameters },
+        { ...operation, pathName, pathReqMethod, parameters, requestBody },
         configuration,
         schemes,
       );
@@ -141,7 +142,7 @@ describe('An OpenApiAxiosParamFactory', (): void => {
       async(): Promise<void> => {
         configuration = { username: 'adlerfaulkner', password: 'abc123' };
         openApiAxiosParamFactory = new OpenApiAxiosParamFactory(
-          { ...operation, pathName, pathReqMethod, parameters },
+          { ...operation, pathName, pathReqMethod, parameters, requestBody },
           configuration,
           {},
         );
@@ -153,7 +154,7 @@ describe('An OpenApiAxiosParamFactory', (): void => {
       async(): Promise<void> => {
         configuration = { username: 'adlerfaulkner', password: 'abc123' };
         openApiAxiosParamFactory = new OpenApiAxiosParamFactory(
-          { ...operation, pathName, pathReqMethod, parameters },
+          { ...operation, pathName, pathReqMethod, parameters, requestBody },
           configuration,
           schemes,
         );
@@ -178,7 +179,7 @@ describe('An OpenApiAxiosParamFactory', (): void => {
       async(): Promise<void> => {
         configuration.apiKey = '12345';
         openApiAxiosParamFactory = new OpenApiAxiosParamFactory(
-          { ...operation, pathName, pathReqMethod, parameters },
+          { ...operation, pathName, pathReqMethod, parameters, requestBody },
           configuration,
           schemes,
         );
@@ -190,7 +191,7 @@ describe('An OpenApiAxiosParamFactory', (): void => {
       async(): Promise<void> => {
         configuration.apiKey = (): string => '12345';
         openApiAxiosParamFactory = new OpenApiAxiosParamFactory(
-          { ...operation, pathName, pathReqMethod, parameters },
+          { ...operation, pathName, pathReqMethod, parameters, requestBody },
           configuration,
           schemes,
         );
@@ -204,7 +205,7 @@ describe('An OpenApiAxiosParamFactory', (): void => {
         configuration.apiKey = '12345';
         schemes = { apiKey: { in: 'query', name: 'apikey', type: 'apiKey' }};
         openApiAxiosParamFactory = new OpenApiAxiosParamFactory(
-          { ...operation, pathName, pathReqMethod, parameters },
+          { ...operation, pathName, pathReqMethod, parameters, requestBody },
           configuration,
           schemes,
         );
@@ -219,7 +220,7 @@ describe('An OpenApiAxiosParamFactory', (): void => {
       configuration.apiKey = (): string => '12345';
       schemes = { apiKey: { in: 'query', name: 'apikey', type: 'apiKey' }};
       openApiAxiosParamFactory = new OpenApiAxiosParamFactory(
-        { ...operation, pathName, pathReqMethod, parameters },
+        { ...operation, pathName, pathReqMethod, parameters, requestBody },
         configuration,
         schemes,
       );
@@ -233,7 +234,7 @@ describe('An OpenApiAxiosParamFactory', (): void => {
         configuration.apiKey = '12345';
         schemes = { apiKey: { in: 'cookie', name: 'apikey', type: 'apiKey' }};
         openApiAxiosParamFactory = new OpenApiAxiosParamFactory(
-          { ...operation, pathName, pathReqMethod, parameters },
+          { ...operation, pathName, pathReqMethod, parameters, requestBody },
           configuration,
           schemes,
         );
@@ -251,7 +252,7 @@ describe('An OpenApiAxiosParamFactory', (): void => {
         in: 'header',
       }];
       openApiAxiosParamFactory = new OpenApiAxiosParamFactory(
-        { ...operation, pathName, pathReqMethod, parameters },
+        { ...operation, pathName, pathReqMethod, parameters, requestBody },
         configuration,
         schemes,
       );
@@ -268,7 +269,7 @@ describe('An OpenApiAxiosParamFactory', (): void => {
         { name: 'Authorization', in: 'header' },
       ];
       openApiAxiosParamFactory = new OpenApiAxiosParamFactory(
-        { ...operation, pathName, pathReqMethod, parameters },
+        { ...operation, pathName, pathReqMethod, parameters, requestBody },
         configuration,
         schemes,
       );
@@ -286,7 +287,7 @@ describe('An OpenApiAxiosParamFactory', (): void => {
     async(): Promise<void> => {
       parameters = [{ name: 'param1', in: 'query' }];
       openApiAxiosParamFactory = new OpenApiAxiosParamFactory(
-        { ...operation, pathName, pathReqMethod, parameters },
+        { ...operation, pathName, pathReqMethod, parameters, requestBody },
         configuration,
         schemes,
       );
@@ -301,7 +302,7 @@ describe('An OpenApiAxiosParamFactory', (): void => {
       pathName = '/example/api/path/{id}';
       parameters = [{ name: 'id', in: 'path', required: true }];
       openApiAxiosParamFactory = new OpenApiAxiosParamFactory(
-        { ...operation, pathName, pathReqMethod, parameters },
+        { ...operation, pathName, pathReqMethod, parameters, requestBody },
         configuration,
         schemes,
       );
@@ -314,7 +315,7 @@ describe('An OpenApiAxiosParamFactory', (): void => {
   it('errors when required parameters are not supplied.', async(): Promise<void> => {
     parameters = [{ name: 'param1', in: 'query', required: true }];
     openApiAxiosParamFactory = new OpenApiAxiosParamFactory(
-      { ...operation, pathName, pathReqMethod, parameters },
+      { ...operation, pathName, pathReqMethod, parameters, requestBody },
       configuration,
       schemes,
     );
@@ -327,7 +328,7 @@ describe('An OpenApiAxiosParamFactory', (): void => {
   it('errors when parameters are used which specify a non supported location.', async(): Promise<void> => {
     parameters = [{ name: 'param1', in: 'cookie' }];
     openApiAxiosParamFactory = new OpenApiAxiosParamFactory(
-      { ...operation, pathName, pathReqMethod, parameters },
+      { ...operation, pathName, pathReqMethod, parameters, requestBody },
       configuration,
       schemes,
     );
@@ -344,7 +345,7 @@ describe('An OpenApiAxiosParamFactory', (): void => {
         headers: { token: 'abcd' },
       };
       openApiAxiosParamFactory = new OpenApiAxiosParamFactory(
-        { ...operation, pathName, pathReqMethod, parameters },
+        { ...operation, pathName, pathReqMethod, parameters, requestBody },
         configuration,
         schemes,
       );
@@ -369,4 +370,33 @@ describe('An OpenApiAxiosParamFactory', (): void => {
     expect(response.options.headers).toEqual({ 'Content-Type': 'application/json' });
     expect(response.options.data).toBe('{"foo":"bar"}');
   });
+
+  it('adds formdata to the body when the operation\'s requestBody only specifies application/x-www-form-urlencoded.',
+    async(): Promise<void> => {
+      requestBody = {
+        content: {
+          'application/x-www-form-urlencoded': {
+            schema: {
+              type: 'object',
+              properties: {
+                grant_type: { type: 'string' },
+                scope: { type: 'string' },
+              },
+            },
+          },
+        },
+      };
+      openApiAxiosParamFactory = new OpenApiAxiosParamFactory(
+        { ...operation, pathName, pathReqMethod, parameters, requestBody },
+        configuration,
+        schemes,
+      );
+
+      const response = await openApiAxiosParamFactory.createParams({
+        grant_type: 'client_credentials',
+        scope: 'read:events',
+      });
+      expect(response.options.headers).toEqual({ 'Content-Type': 'application/x-www-form-urlencoded' });
+      expect(response.options.data).toBe('grant_type=client_credentials&scope=read%3Aevents');
+    });
 });

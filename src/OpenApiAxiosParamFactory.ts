@@ -1,7 +1,8 @@
 import type { AxiosRequestConfig } from 'axios';
 import type { OpenApiClientConfiguration } from './OpenApiClientConfiguration';
 import {
-  serializeDataIfNeeded,
+  serializeDataAsJsonIfNeeded,
+  serializeDataAsFormIfNeeded,
   jsonParamsToUrlString,
   escapeRegExp,
   base64URLEncode,
@@ -14,6 +15,7 @@ import type {
   DereferencedComponents,
   Parameter,
   SecurityScheme,
+  RequestBody,
 } from './OpenApiSchemaConfiguration';
 
 export interface AxiosRequestParams {
@@ -37,6 +39,9 @@ const SECURITY_TYPES = {
 };
 
 const BASIC_SCHEME_TYPE = 'basic';
+
+const FORM_CONTENT_TYPE = 'application/x-www-form-urlencoded';
+const JSON_CONTENT_TYPE = 'application/json';
 
 /**
  * Factory that generates an AxiosRequestParams object for an {@link OpenApiClientAxiosApi}
@@ -63,6 +68,7 @@ export class OpenApiAxiosParamFactory {
   private readonly securitySchemes: Required<DereferencedComponents>['securitySchemes'];
   private readonly configuration: OpenApiClientConfiguration;
   private readonly parameters?: Parameter[];
+  private readonly requestBody?: RequestBody;
 
   public constructor(
     operationWithPathInfo: OperationWithPathInfo,
@@ -73,6 +79,7 @@ export class OpenApiAxiosParamFactory {
     this.pathReqMethod = operationWithPathInfo.pathReqMethod;
     this.security = operationWithPathInfo.security;
     this.parameters = operationWithPathInfo.parameters;
+    this.requestBody = operationWithPathInfo.requestBody;
     this.configuration = configuration;
     this.securitySchemes = securitySchemes;
   }
@@ -272,11 +279,13 @@ export class OpenApiAxiosParamFactory {
    */
   private constructRequestOptions(options: AxiosRequestConfig): AxiosRequestConfig {
     const { baseOptions } = this.configuration;
+    const contentType = this.getContentType();
+    const data = this.getAndSerializeRequestData(contentType);
     const requestOptions = {
       method: this.pathReqMethod,
       ...baseOptions,
       ...options,
-      data: serializeDataIfNeeded(this.requestBodyArgs),
+      data,
       headers: {
         ...this.headerParameters,
         ...baseOptions?.headers,
@@ -284,9 +293,23 @@ export class OpenApiAxiosParamFactory {
       },
     };
 
-    if (requestOptions.data) {
-      requestOptions.headers['Content-Type'] = 'application/json';
+    if (data) {
+      requestOptions.headers['Content-Type'] = contentType;
     }
     return requestOptions;
+  }
+
+  private getContentType(): string {
+    if (this.requestBody?.content?.[FORM_CONTENT_TYPE] && !this.requestBody?.content?.[JSON_CONTENT_TYPE]) {
+      return FORM_CONTENT_TYPE;
+    }
+    return JSON_CONTENT_TYPE;
+  }
+
+  private getAndSerializeRequestData(contentType: string): string | undefined {
+    if (contentType === FORM_CONTENT_TYPE) {
+      return serializeDataAsFormIfNeeded(this.requestBodyArgs);
+    }
+    return serializeDataAsJsonIfNeeded(this.requestBodyArgs);
   }
 }

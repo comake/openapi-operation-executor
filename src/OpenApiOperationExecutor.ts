@@ -14,11 +14,11 @@ import {
   sha256,
 } from './OpenApiClientUtils';
 import type {
-  Operation,
   OpenApi,
   DereferencedOpenApi,
   OAuth2SecurityScheme,
   SecurityScheme,
+  DereferencedOperation,
 } from './OpenApiSchemaConfiguration';
 
 export interface CodeAuthorizationUrlResponse {
@@ -34,7 +34,7 @@ export interface PathInfo {
   pathReqMethod: string;
 }
 
-export type OperationWithPathInfo = Operation & PathInfo;
+export type OperationWithPathInfo = DereferencedOperation & PathInfo;
 
 const AUTHORIZATION_URL_STAGE = 'authorizationUrl';
 const SUPPORTED_SECURITY_OPERATION_STAGES = new Set([ 'tokenUrl' ]);
@@ -167,7 +167,7 @@ export class OpenApiOperationExecutor {
     return `${authorizationUrlBase}?${jsonParamsToUrlString(params)}`;
   }
 
-  private getOperationInfoForFlow(flow: string): Operation & Pick<OperationWithPathInfo, 'pathReqMethod'> {
+  private getOperationInfoForFlow(flow: string): DereferencedOperation & Pick<OperationWithPathInfo, 'pathReqMethod'> {
     return flow === CLIENT_CREDENTIALS_FLOW
       ? clientCredentialsTokenOperationAndPathInfo
       : pkceOauthOperationAndPathInfo;

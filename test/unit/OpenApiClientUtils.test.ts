@@ -2,7 +2,8 @@
 import {
   RequiredError,
   isJsonMime,
-  serializeDataIfNeeded,
+  serializeDataAsJsonIfNeeded,
+  serializeDataAsFormIfNeeded,
   jsonParamsToUrlString,
   escapeRegExp,
 } from '../../src/OpenApiClientUtils';
@@ -56,21 +57,39 @@ describe('OpenApiClientUtils', (): void => {
     });
   });
 
-  describe('serializeDataIfNeeded', (): void => {
+  describe('serializeDataAsJsonIfNeeded', (): void => {
     it('returns undefined if no value is supplied.', (): void => {
-      expect(serializeDataIfNeeded(undefined)).toBeUndefined();
+      expect(serializeDataAsJsonIfNeeded(undefined)).toBeUndefined();
     });
     it('returns undefined if the value is an empty string.', (): void => {
-      expect(serializeDataIfNeeded('')).toBeUndefined();
+      expect(serializeDataAsJsonIfNeeded('')).toBeUndefined();
     });
     it('returns the value if it is already a string.', (): void => {
-      expect(serializeDataIfNeeded('already a string')).toBe('already a string');
+      expect(serializeDataAsJsonIfNeeded('already a string')).toBe('already a string');
     });
-    it('returns undefined if the value is a non empty object.', (): void => {
-      expect(serializeDataIfNeeded({})).toBeUndefined();
+    it('returns undefined if the value is an empty object.', (): void => {
+      expect(serializeDataAsJsonIfNeeded({})).toBeUndefined();
     });
     it('returns a stringified version of the value if it is a non empty object.', (): void => {
-      expect(serializeDataIfNeeded({ alpha: 'bet' })).toBe('{"alpha":"bet"}');
+      expect(serializeDataAsJsonIfNeeded({ alpha: 'bet' })).toBe('{"alpha":"bet"}');
+    });
+  });
+
+  describe('serializeDataAsFormIfNeeded', (): void => {
+    it('returns undefined if no value is supplied.', (): void => {
+      expect(serializeDataAsFormIfNeeded(undefined)).toBeUndefined();
+    });
+    it('returns undefined if the value is an empty string.', (): void => {
+      expect(serializeDataAsFormIfNeeded('')).toBeUndefined();
+    });
+    it('returns the value if it is already a string.', (): void => {
+      expect(serializeDataAsFormIfNeeded('already a string')).toBe('already a string');
+    });
+    it('returns undefined if the value is an empty object.', (): void => {
+      expect(serializeDataAsFormIfNeeded({})).toBeUndefined();
+    });
+    it('returns the data as FormData if it is a non empty object.', (): void => {
+      expect(serializeDataAsFormIfNeeded({ alpha: 'bet' })).toBe('alpha=bet');
     });
   });
 

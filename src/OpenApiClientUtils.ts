@@ -1,6 +1,6 @@
 /* eslint-disable require-unicode-regexp, no-div-regex, @typescript-eslint/naming-convention */
 import crypto from 'crypto';
-import type { Parameter, Responses } from './OpenApiSchemaConfiguration';
+import type { DereferencedResponses, Parameter } from './OpenApiSchemaConfiguration';
 
 export type PrimitiveJSONValue =
 | string
@@ -53,21 +53,6 @@ export class RequiredError extends Error {
 export function isJsonMime(mime: string): boolean {
   const jsonMime = /^(application\/json|[^;/ \t]+\/[^;/ \t]+[+]json)[ \t]*(;.*)?$/iu;
   return mime !== null && (jsonMime.test(mime) || mime.toLowerCase() === 'application/json-patch+json');
-}
-
-/**
- * Helper that serializes data into a string if necessary.
- * @param value - The value to be serialized
- * @returns value or a serialized representation of value
- */
-export function serializeDataIfNeeded(value: any): string | undefined {
-  const isString = typeof value === 'string';
-  if (isString && value.length > 0) {
-    return value;
-  }
-  if (!isString && !(typeof value === 'object' && Object.keys(value).length === 0)) {
-    return JSON.stringify(value);
-  }
 }
 
 function arrayOrObjectParamToUrlString(
@@ -126,6 +111,36 @@ export function jsonParamsToUrlString(params: NestedJSONValue, parentKeys: (stri
   return paramStrings.join('&');
 }
 
+/**
+ * Helper that serializes data into a JSON encoded string if necessary.
+ * @param value - The value to be serialized
+ * @returns value or a serialized representation of value
+ */
+export function serializeDataAsJsonIfNeeded(value: any): string | undefined {
+  const isString = typeof value === 'string';
+  if (isString && value.length > 0) {
+    return value;
+  }
+  if (!isString && !(typeof value === 'object' && Object.keys(value).length === 0)) {
+    return JSON.stringify(value);
+  }
+}
+
+/**
+ * Helper that serializes data into a url encoded string if necessary.
+ * @param value - The value to be serialized
+ * @returns value or a serialized representation of value
+ */
+export function serializeDataAsFormIfNeeded(data: any): string | undefined {
+  const isString = typeof data === 'string';
+  if (isString && data.length > 0) {
+    return data;
+  }
+  if (data && !isString && !(typeof data === 'object' && Object.keys(data).length === 0)) {
+    return jsonParamsToUrlString(data);
+  }
+}
+
 export function escapeRegExp(string: string): string {
   return string.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
 }
@@ -151,26 +166,24 @@ export const securityStageOperationSecuritySchemes = {
 export const clientCredentialsTokenOperationAndPathInfo = {
   pathReqMethod: 'POST',
   security: [{ basic: []}],
-  parameters: [
-    {
-      description: 'The grant type.',
-      in: 'query',
-      name: 'grant_type',
-      required: true,
-      schema: {
-        type: 'string',
+  requestBody: {
+    content: {
+      'application/x-www-form-urlencoded': {
+        schema: {
+          type: 'object',
+          properties: {
+            grant_type: {
+              type: 'string',
+              description: 'The grant type.',
+            },
+            scope: {
+              description: 'The Oauth scopes requested from the provider',
+            },
+          },
+        },
       },
     },
-    {
-      description: 'The Oauth scopes requested from the provider',
-      in: 'query',
-      name: 'scope',
-      required: true,
-      schema: {
-        type: 'string',
-      },
-    },
-  ] as Parameter[],
+  },
   responses: {
     200: {
       description: 'Successful operation',
@@ -191,7 +204,7 @@ export const clientCredentialsTokenOperationAndPathInfo = {
         },
       },
     },
-  } as Responses,
+  } as DereferencedResponses,
 };
 
 export const pkceOauthOperationAndPathInfo = {
@@ -291,6 +304,6 @@ export const pkceOauthOperationAndPathInfo = {
         },
       },
     },
-  } as Responses,
+  } as DereferencedResponses,
 };
 
