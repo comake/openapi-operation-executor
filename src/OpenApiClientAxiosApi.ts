@@ -26,6 +26,6 @@ export class OpenApiClientAxiosApi {
       ...axiosRequestParams.options,
       url: `${this.basePath}${axiosRequestParams.url}`,
     };
-    return this.axios.request(axiosRequestParamsWithBasePath);
+    return this.axios.request(axiosRequestParamsWithBasePath)
   }
 }

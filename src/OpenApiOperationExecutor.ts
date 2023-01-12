@@ -49,7 +49,7 @@ export class OpenApiOperationExecutor {
 
   public async executeOperation(
     operationId: string,
-    configuration: OpenApiClientConfiguration,
+    configuration: OpenApiClientConfiguration = {},
     args?: any,
     options?: AxiosRequestConfig,
   ): Promise<AxiosResponse> {
