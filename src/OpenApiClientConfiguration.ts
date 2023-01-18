@@ -20,8 +20,8 @@ export interface OpenApiClientConfiguration {
   * @param scopes - oauth2 scope
   */
   accessToken?: string | Promise<string>
-  | ((name?: string, scopes?: string[]) => string)
-  | ((name?: string, scopes?: string[]) => Promise<string>);
+  | ((name?: string, scopes?: readonly string[]) => string)
+  | ((name?: string, scopes?: readonly string[]) => Promise<string>);
   /**
   * Override base path
   */

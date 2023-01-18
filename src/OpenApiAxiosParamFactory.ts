@@ -64,10 +64,10 @@ export class OpenApiAxiosParamFactory {
   private headerParameters: HeaderObject = {};
   private requestBodyArgs: Record<string, any> = {};
   private readonly pathReqMethod: string;
-  private readonly security?: SecurityRequirement[];
+  private readonly security?: readonly SecurityRequirement[];
   private readonly securitySchemes: Required<DereferencedComponents>['securitySchemes'];
   private readonly configuration: OpenApiClientConfiguration;
-  private readonly parameters?: Parameter[];
+  private readonly parameters?: readonly Parameter[];
   private readonly requestBody?: RequestBody;
 
   public constructor(
@@ -192,7 +192,7 @@ export class OpenApiAxiosParamFactory {
   private async setOAuthToHeaderObject(
     headerParameters: any,
     name: string,
-    scopes: string[],
+    scopes: readonly string[],
   ): Promise<void> {
     const localVarAccessTokenValue = typeof this.configuration.accessToken === 'function'
       ? await this.configuration.accessToken(name, scopes)
@@ -228,7 +228,7 @@ export class OpenApiAxiosParamFactory {
     for (const [ key, value ] of Object.entries(args)) {
       const parameter = this.parameters?.find((param): boolean => param.name === key);
       if (parameter) {
-        const parameterName = parameter.name as string;
+        const parameterName = parameter.name;
         if (parameter.in === PARAMETER_AND_SCHEME_LOCATIONS.query) {
           this.queryParameters[key] = value;
         } else if (parameter.in === PARAMETER_AND_SCHEME_LOCATIONS.path) {
@@ -253,7 +253,7 @@ export class OpenApiAxiosParamFactory {
   private assertAllRequiredParametersArePresent(args: Record<string, any>): void {
     const unsetRequiredParameter = this.parameters!.find((parameter): boolean =>
       // eslint-disable-next-line unicorn/prefer-object-has-own
-      parameter.required === true && !Object.prototype.hasOwnProperty.call(args, parameter.name as string));
+      parameter.required === true && !Object.prototype.hasOwnProperty.call(args, parameter.name));
 
     if (unsetRequiredParameter) {
       throw new Error(`Parameter ${unsetRequiredParameter.name} is required for this operation.`);

@@ -1,295 +1,301 @@
-export type Parameter = ExampleXORExamples & SchemaXORContent & ParameterLocation;
-// Schema and content are mutually exclusive, at least one is required
-export type SchemaXORContent =
- | Record<string, unknown>
- | Record<string, unknown>;
+export type ParameterLocation = 'path' | 'query' | 'header' | 'cookie';
 
-// Parameter location
-export type ParameterLocation =
+export type BaseParameter = {
+  readonly name: string;
+  readonly in: ParameterLocation;
+  readonly description?: string;
+  readonly required?: boolean;
+  readonly deprecated?: boolean;
+  readonly explode?: boolean;
+  readonly schema?: Schema;
+  readonly example?: any;
+  readonly examples?: readonly string[] | readonly Reference[] | readonly Example[];
+  readonly content?: readonly string[] | readonly MediaType[];
+  readonly [k: string]: unknown;
+};
+
+export interface DereferencedBaseParameter extends BaseParameter {
+  readonly schema?: DereferencedSchema;
+  readonly examples?: readonly string[] | readonly Example[];
+  readonly content?: readonly string[] | readonly DereferencedMediaType[];
+}
+
+interface PathParameterFields {
+  readonly in: 'path';
+  readonly required: boolean;
+  readonly style?: 'matrix' | 'label' | 'simple';
+}
+
+interface QueryParameterFields {
+  readonly in: 'query';
+  readonly allowEmptyValue?: boolean;
+  readonly style?: 'form' | 'spaceDelimited' | 'pipeDelimited' | 'deepObject';
+  readonly allowReserved?: boolean;
+}
+
+interface HeaderParameterFields {
+  readonly in: 'header';
+  readonly allowEmptyValue?: boolean;
+  readonly style?: 'simple';
+}
+
+interface CookieParameterFields {
+  readonly in: 'cookie';
+  readonly allowEmptyValue?: boolean;
+  readonly style?: 'form';
+}
+
+export type PathParameter = BaseParameter & PathParameterFields;
+export type QueryParameter = BaseParameter & QueryParameterFields;
+export type HeaderParameter = BaseParameter & HeaderParameterFields;
+export type CookieParameter = BaseParameter & CookieParameterFields;
+
+export type DereferencedPathParameter = DereferencedBaseParameter & PathParameterFields;
+export type DereferencedQueryParameter = DereferencedBaseParameter & QueryParameterFields;
+export type DereferencedHeaderParameter = DereferencedBaseParameter & HeaderParameterFields;
+export type DereferencedCookieParameter = DereferencedBaseParameter & CookieParameterFields;
+
+export type Parameter =
+| PathParameter
+| QueryParameter
+| HeaderParameter
+| CookieParameter;
+
+export type DereferencedParameter =
+| DereferencedPathParameter
+| DereferencedQueryParameter
+| DereferencedHeaderParameter
+| DereferencedCookieParameter;
+
+export type Encoding = {
+  readonly contentType: string;
+  readonly headers: readonly string[] | readonly Header[] | readonly Reference[];
+  readonly style: string;
+  readonly explode: boolean;
+  readonly allowReserved: boolean;
+  readonly [k: string]: unknown;
+};
+
+export interface DereferencedEncoding extends Encoding {
+  readonly headers: readonly string[] | readonly Header[];
+}
+
+export type MediaType = {
+  readonly schema?: Schema;
+  readonly example?: any;
+  readonly examples?: readonly string[] | readonly Reference[] | readonly Example[];
+  readonly encoding?: readonly string[] | readonly Encoding[];
+  readonly [k: string]: unknown;
+};
+
+export interface DereferencedMediaType extends MediaType {
+  readonly schema?: DereferencedSchema;
+  readonly examples?: readonly string[] | readonly Example[];
+  readonly encoding?: readonly string[] | readonly DereferencedEncoding[];
+}
+
+export type Header = {
+  readonly allowEmptyValue?: boolean;
+  readonly style?: 'simple';
+  readonly description?: string;
+  readonly required?: boolean;
+  readonly deprecated?: boolean;
+  readonly explode?: boolean;
+  readonly schema?: Schema;
+  readonly example?: any;
+  readonly examples?: readonly string[] | readonly Reference[] | readonly Example[];
+  readonly content?: readonly string[] | readonly MediaType[];
+  readonly [k: string]: unknown;
+};
+
+export interface DereferencedHeader extends Header {
+  readonly schema?: DereferencedSchema;
+  readonly examples?: readonly string[] | readonly Example[];
+  readonly content?: readonly string[] | readonly DereferencedMediaType[];
+}
+
+export interface APIKeySecurityScheme {
+  readonly type: 'apiKey';
+  readonly name: string;
+  readonly in: 'header' | 'query' | 'cookie';
+  readonly description?: string;
+  readonly [k: string]: unknown;
+}
+
+export interface OAuth2SecurityScheme {
+  readonly type: 'oauth2';
+  readonly flows: OAuthFlows;
+  readonly description?: string;
+  readonly [k: string]: unknown;
+}
+
+export type HTTPSecurityScheme =
  | {
-   in?: 'path';
-   style?: 'matrix' | 'label' | 'simple';
-   required: true;
-   [k: string]: unknown;
+   readonly scheme?: string;
+   readonly [k: string]: unknown;
  }
  | {
-   in?: 'query';
-   style?: 'form' | 'spaceDelimited' | 'pipeDelimited' | 'deepObject';
-   [k: string]: unknown;
- }
- | {
-   in?: 'header';
-   style?: 'simple';
-   [k: string]: unknown;
- }
- | {
-   in?: 'cookie';
-   style?: 'form';
-   [k: string]: unknown;
+   readonly scheme?: Record<string, unknown>;
+   readonly [k: string]: unknown;
  };
-export type MediaType = ExampleXORExamples;
-export type Header = ExampleXORExamples & SchemaXORContent;
+
+export interface OpenIdConnectSecurityScheme {
+  readonly type: 'openIdConnect';
+  readonly openIdConnectUrl: string;
+  readonly description?: string;
+  readonly [k: string]: unknown;
+}
+
 export type SecurityScheme =
  | APIKeySecurityScheme
  | HTTPSecurityScheme
  | OAuth2SecurityScheme
  | OpenIdConnectSecurityScheme;
-export type HTTPSecurityScheme =
- | {
-   scheme?: string;
-   [k: string]: unknown;
- }
- | {
-   scheme?: Record<string, unknown>;
-   [k: string]: unknown;
- };
-
-// Validation schema for OpenAPI Specification 3.0.X.
-export interface OpenApi {
-  openapi: string;
-  info: Info;
-  externalDocs?: ExternalDocumentation;
-  servers?: Server[];
-  security?: SecurityRequirement[];
-  tags?: Tag[];
-  paths: Paths;
-  components?: Components;
-  /**
-  * This interface was referenced by `OpenApi`'s JSON-Schema definition
-  * via the `patternProperty` "^x-".
-  */
-  [k: string]: unknown;
-}
-
-export interface DereferencedOpenApi {
-  openapi: string;
-  info: Info;
-  externalDocs?: ExternalDocumentation;
-  servers?: Server[];
-  security?: SecurityRequirement[];
-  tags?: Tag[];
-  paths: DereferencedPaths;
-  components?: DereferencedComponents;
-}
 
 export interface Info {
-  title: string;
-  description?: string;
-  termsOfService?: string;
-  contact?: Contact;
-  license?: License;
-  version: string;
-  /**
-  * This interface was referenced by `Info`'s JSON-Schema definition
-  * via the `patternProperty` "^x-".
-  */
-  [k: string]: unknown;
+  readonly title: string;
+  readonly description?: string;
+  readonly termsOfService?: string;
+  readonly contact?: Contact;
+  readonly license?: License;
+  readonly version: string;
+  readonly [k: string]: unknown;
 }
 export interface Contact {
-  name?: string;
-  url?: string;
-  email?: string;
-  /**
-  * This interface was referenced by `Contact`'s JSON-Schema definition
-  * via the `patternProperty` "^x-".
-  */
-  [k: string]: unknown;
+  readonly name?: string;
+  readonly url?: string;
+  readonly email?: string;
+  readonly [k: string]: unknown;
 }
 export interface License {
-  name: string;
-  url?: string;
-  /**
-  * This interface was referenced by `License`'s JSON-Schema definition
-  * via the `patternProperty` "^x-".
-  */
-  [k: string]: unknown;
+  readonly name: string;
+  readonly url?: string;
+  readonly [k: string]: unknown;
 }
 export interface ExternalDocumentation {
-  description?: string;
-  url: string;
-  /**
-  * This interface was referenced by `ExternalDocumentation`'s JSON-Schema definition
-  * via the `patternProperty` "^x-".
-  */
-  [k: string]: unknown;
+  readonly description?: string;
+  readonly url: string;
+  readonly [k: string]: unknown;
 }
 export interface Server {
-  url: string;
-  description?: string;
-  variables?: Record<string, ServerVariable>;
-  /**
-  * This interface was referenced by `Server`'s JSON-Schema definition
-  * via the `patternProperty` "^x-".
-  */
-  [k: string]: unknown;
+  readonly url: string;
+  readonly description?: string;
+  readonly variables?: Record<string, ServerVariable>;
+  readonly [k: string]: unknown;
 }
 export interface ServerVariable {
-  enum?: string[];
-  default: string;
-  description?: string;
-  /**
-  * This interface was referenced by `ServerVariable`'s JSON-Schema definition
-  * via the `patternProperty` "^x-".
-  */
-  [k: string]: unknown;
+  readonly enum?: readonly string[];
+  readonly default: string;
+  readonly description?: string;
+  readonly [k: string]: unknown;
 }
-export type SecurityRequirement = Record<string, string[]>;
+export type SecurityRequirement = Record<string, readonly string[]>;
 
 export interface Tag {
-  name: string;
-  description?: string;
-  externalDocs?: ExternalDocumentation;
-  /**
-  * This interface was referenced by `Tag`'s JSON-Schema definition
-  * via the `patternProperty` "^x-".
-  */
-  [k: string]: unknown;
+  readonly name: string;
+  readonly description?: string;
+  readonly externalDocs?: ExternalDocumentation;
+  readonly [k: string]: unknown;
 }
 export type Paths = Record<string, PathItem>;
 
 export type DereferencedPaths = Record<string, DereferencedPathItem>;
-/**
- * This interface was referenced by `Paths`'s JSON-Schema definition
- * via the `patternProperty` "^\/".
- */
 export interface PathItem {
-  $ref?: string;
-  summary?: string;
-  description?: string;
-  servers?: Server[];
-  parameters?: (Parameter | Reference)[];
-  get?: Operation;
-  post?: Operation;
-  patch?: Operation;
-  put?: Operation;
-  delete?: Operation;
-  options?: Operation;
-  head?: Operation;
-  trace?: Operation;
+  readonly $ref?: string;
+  readonly summary?: string;
+  readonly description?: string;
+  readonly servers?: readonly Server[];
+  readonly parameters?: readonly (Parameter | Reference)[];
+  readonly get?: Operation;
+  readonly post?: Operation;
+  readonly patch?: Operation;
+  readonly put?: Operation;
+  readonly delete?: Operation;
+  readonly options?: Operation;
+  readonly head?: Operation;
+  readonly trace?: Operation;
 }
 
 export interface DereferencedPathItem {
-  summary?: string;
-  description?: string;
-  servers?: Server[];
-  parameters?: Parameter[];
-  get?: DereferencedOperation;
-  post?: DereferencedOperation;
-  patch?: DereferencedOperation;
-  put?: DereferencedOperation;
-  delete?: DereferencedOperation;
-  options?: DereferencedOperation;
-  head?: DereferencedOperation;
-  trace?: DereferencedOperation;
+  readonly summary?: string;
+  readonly description?: string;
+  readonly servers?: readonly Server[];
+  readonly parameters?: readonly DereferencedParameter[];
+  readonly get?: DereferencedOperation;
+  readonly post?: DereferencedOperation;
+  readonly patch?: DereferencedOperation;
+  readonly put?: DereferencedOperation;
+  readonly delete?: DereferencedOperation;
+  readonly options?: DereferencedOperation;
+  readonly head?: DereferencedOperation;
+  readonly trace?: DereferencedOperation;
 }
-// Example and examples are mutually exclusive
-export type ExampleXORExamples = Record<string, unknown>;
 
-/**
- * This interface was referenced by `Reference`'s JSON-Schema definition
- * via the `patternProperty` "^\$ref$".
- */
-export type Reference = Record<string, string>;
+export type Reference = {
+  readonly $ref: string;
+  readonly summary?: string;
+  readonly description?: string;
+};
 
-/**
- * This interface was referenced by `PathItem`'s JSON-Schema definition
- * via the `patternProperty` "^(get|put|post|delete|options|head|patch|trace)$".
- */
 export interface Operation {
-  tags?: string[];
-  summary?: string;
-  description?: string;
-  externalDocs?: ExternalDocumentation;
-  operationId?: string;
-  parameters?: Parameter[];
-  requestBody?: RequestBody | Reference;
-  responses: Responses;
-  callbacks?: Record<string, Callback>;
-  deprecated?: boolean;
-  security?: SecurityRequirement[];
-  servers?: Server[];
-  /**
-   * This interface was referenced by `Operation`'s JSON-Schema definition
-   * via the `patternProperty` "^x-".
-   */
-  [k: string]: unknown;
+  readonly tags?: readonly string[];
+  readonly summary?: string;
+  readonly description?: string;
+  readonly externalDocs?: ExternalDocumentation;
+  readonly operationId?: string;
+  readonly parameters?: readonly Parameter[];
+  readonly requestBody?: RequestBody | Reference;
+  readonly responses: Responses;
+  readonly callbacks?: Record<string, Callback>;
+  readonly deprecated?: boolean;
+  readonly security?: readonly SecurityRequirement[];
+  readonly servers?: readonly Server[];
+  readonly [k: string]: unknown;
 }
 
-export interface DereferencedOperation {
-  tags?: string[];
-  summary?: string;
-  description?: string;
-  externalDocs?: ExternalDocumentation;
-  operationId?: string;
-  parameters?: Parameter[];
-  requestBody?: RequestBody;
-  responses: DereferencedResponses;
-  callbacks?: Record<string, Callback>;
-  deprecated?: boolean;
-  security?: SecurityRequirement[];
-  servers?: Server[];
-  /**
-   * This interface was referenced by `Operation`'s JSON-Schema definition
-   * via the `patternProperty` "^x-".
-   */
-  [k: string]: unknown;
+export interface DereferencedOperation extends Operation {
+  readonly parameters?: readonly DereferencedParameter[];
+  readonly requestBody?: DereferencedRequestBody;
+  readonly responses: DereferencedResponses;
+  readonly callbacks?: Record<string, DereferencedCallback>;
 }
 
 export interface RequestBody {
-  description?: string;
-  content: Record<string, MediaType>;
-  required?: boolean;
-  /**
-   * This interface was referenced by `RequestBody`'s JSON-Schema definition
-   * via the `patternProperty` "^x-".
-   */
-  [k: string]: unknown;
+  readonly description?: string;
+  readonly content: Record<string, MediaType>;
+  readonly required?: boolean;
+  readonly [k: string]: unknown;
 }
 
-export interface Responses {
-  default?: Response | Reference;
+export interface DereferencedRequestBody extends RequestBody {
+  readonly content: Record<string, DereferencedMediaType>;
 }
 
-export interface DereferencedResponses {
-  default?: DereferencedResponse;
-}
+export type Responses = Readonly<Record<string, Response | Reference>>;
+export type DereferencedResponses = Readonly<Record<string, DereferencedResponse>>;
 
 export interface Response {
-  description: string;
-  headers?: Record<string, Header | Reference>;
-  content?: Record<string, MediaType>;
-  links?: Record<string, Link | Reference>;
-  /**
-   * This interface was referenced by `Response`'s JSON-Schema definition
-   * via the `patternProperty` "^x-".
-   */
-  [k: string]: unknown;
+  readonly description: string;
+  readonly headers?: Record<string, Header | Reference>;
+  readonly content?: Record<string, MediaType>;
+  readonly links?: Record<string, Link | Reference>;
+  readonly [k: string]: unknown;
 }
 
-export interface DereferencedResponse {
-  description: string;
-  headers?: Record<string, Header>;
-  content?: Record<string, MediaType>;
-  links?: Record<string, Link>;
-  /**
-   * This interface was referenced by `Response`'s JSON-Schema definition
-   * via the `patternProperty` "^x-".
-   */
-  [k: string]: unknown;
+export interface DereferencedResponse extends Response {
+  readonly headers?: Record<string, DereferencedHeader>;
+  readonly content?: Record<string, DereferencedMediaType>;
+  readonly links?: Record<string, Link>;
 }
 
 export interface Link {
-  operationId?: string;
-  operationRef?: string;
-  parameters?: Record<string, unknown>;
-  requestBody?: unknown;
-  description?: string;
-  server?: Server;
-  /**
-   * This interface was referenced by `Link`'s JSON-Schema definition
-   * via the `patternProperty` "^x-".
-   */
-  [k: string]: unknown;
+  readonly operationId?: string;
+  readonly operationRef?: string;
+  readonly parameters?: Record<string, unknown>;
+  readonly requestBody?: unknown;
+  readonly description?: string;
+  readonly server?: Server;
+  readonly [k: string]: unknown;
 }
 
 export type Callback = Record<string, PathItem>;
@@ -297,235 +303,160 @@ export type Callback = Record<string, PathItem>;
 export type DereferencedCallback = Record<string, DereferencedPathItem>;
 
 export interface Components {
-  schemas?: Record<string, Schema | Reference>;
-  responses?: Record<string, Reference | Response>;
-  parameters?: Record<string, Reference | Parameter>;
-  examples?: Record<string, Reference | Example>;
-  requestBodies?: Record<string, Reference | RequestBody>;
-  headers?: Record<string, Reference | Header>;
-  securitySchemes?: Record<string, Reference | SecurityScheme>;
-  links?: Record<string, Reference | Link>;
-  callbacks?: Record<string, Reference | Callback>;
-  [k: string]: unknown;
+  readonly schemas?: Record<string, Schema | Reference>;
+  readonly responses?: Record<string, Reference | Response>;
+  readonly parameters?: Record<string, Reference | Parameter>;
+  readonly examples?: Record<string, Reference | Example>;
+  readonly requestBodies?: Record<string, Reference | RequestBody>;
+  readonly headers?: Record<string, Reference | Header>;
+  readonly securitySchemes?: Record<string, Reference | SecurityScheme>;
+  readonly links?: Record<string, Reference | Link>;
+  readonly callbacks?: Record<string, Reference | Callback>;
+  readonly [k: string]: unknown;
 }
 
 export interface DereferencedComponents {
-  schemas?: Record<string, DereferencedSchema>;
-  responses?: Record<string, DereferencedResponse>;
-  parameters?: Record<string, Parameter>;
-  examples?: Record<string, Example>;
-  requestBodies?: Record<string, RequestBody>;
-  headers?: Record<string, Header>;
-  securitySchemes?: Record<string, SecurityScheme>;
-  links?: Record<string, Link>;
-  callbacks?: Record<string, DereferencedCallback>;
-  [k: string]: unknown;
+  readonly schemas?: Record<string, DereferencedSchema>;
+  readonly responses?: Record<string, DereferencedResponse>;
+  readonly parameters?: Record<string, DereferencedParameter>;
+  readonly examples?: Record<string, Example>;
+  readonly requestBodies?: Record<string, DereferencedRequestBody>;
+  readonly headers?: Record<string, DereferencedHeader>;
+  readonly securitySchemes?: Record<string, SecurityScheme>;
+  readonly links?: Record<string, Link>;
+  readonly callbacks?: Record<string, DereferencedCallback>;
+  readonly [k: string]: unknown;
 }
 
 export interface Schema {
-  title?: string;
-  multipleOf?: number;
-  maximum?: number;
-  exclusiveMaximum?: boolean;
-  minimum?: number;
-  exclusiveMinimum?: boolean;
-  maxLength?: number;
-  minLength?: number;
-  pattern?: string;
-  maxItems?: number;
-  minItems?: number;
-  uniqueItems?: boolean;
-  maxProperties?: number;
-  minProperties?: number;
-  required?: string[];
-  enum?: unknown[];
-  type?: 'array' | 'boolean' | 'integer' | 'number' | 'object' | 'string';
-  not?: Schema | Reference;
-  allOf?: (Schema | Reference)[];
-  oneOf?: (Schema | Reference)[];
-  anyOf?: (Schema | Reference)[];
-  items?: Schema | Reference;
-  properties?: Record<string, Schema | Reference>;
-  additionalProperties?: Schema | Reference | boolean;
-  description?: string;
-  format?: string;
-  default?: unknown;
-  nullable?: boolean;
-  discriminator?: Discriminator;
-  readOnly?: boolean;
-  writeOnly?: boolean;
-  example?: unknown;
-  externalDocs?: ExternalDocumentation;
-  deprecated?: boolean;
-  xml?: XML;
-  /**
-   * This interface was referenced by `Schema`'s JSON-Schema definition
-   * via the `patternProperty` "^x-".
-   */
-  [k: string]: unknown;
+  readonly title?: string;
+  readonly multipleOf?: number;
+  readonly maximum?: number;
+  readonly exclusiveMaximum?: boolean;
+  readonly minimum?: number;
+  readonly exclusiveMinimum?: boolean;
+  readonly maxLength?: number;
+  readonly minLength?: number;
+  readonly pattern?: string;
+  readonly maxItems?: number;
+  readonly minItems?: number;
+  readonly uniqueItems?: boolean;
+  readonly maxProperties?: number;
+  readonly minProperties?: number;
+  readonly required?: readonly string[];
+  readonly enum?: readonly unknown[];
+  readonly type?: 'array' | 'boolean' | 'integer' | 'number' | 'object' | 'string';
+  readonly not?: Schema | Reference;
+  readonly allOf?: readonly (Schema | Reference)[];
+  readonly oneOf?: readonly (Schema | Reference)[];
+  readonly anyOf?: readonly (Schema | Reference)[];
+  readonly items?: Schema | Reference;
+  readonly properties?: Record<string, Schema | Reference>;
+  readonly additionalProperties?: Schema | Reference | boolean;
+  readonly description?: string;
+  readonly format?: string;
+  readonly default?: unknown;
+  readonly nullable?: boolean;
+  readonly discriminator?: Discriminator;
+  readonly readOnly?: boolean;
+  readonly writeOnly?: boolean;
+  readonly example?: unknown;
+  readonly externalDocs?: ExternalDocumentation;
+  readonly deprecated?: boolean;
+  readonly xml?: XML;
+  readonly [k: string]: unknown;
 }
 
-export interface DereferencedSchema {
-  title?: string;
-  multipleOf?: number;
-  maximum?: number;
-  exclusiveMaximum?: boolean;
-  minimum?: number;
-  exclusiveMinimum?: boolean;
-  maxLength?: number;
-  minLength?: number;
-  pattern?: string;
-  maxItems?: number;
-  minItems?: number;
-  uniqueItems?: boolean;
-  maxProperties?: number;
-  minProperties?: number;
-  required?: string[];
-  enum?: unknown[];
-  type?: 'array' | 'boolean' | 'integer' | 'number' | 'object' | 'string';
-  not?: DereferencedSchema;
-  allOf?: DereferencedSchema[];
-  oneOf?: DereferencedSchema[];
-  anyOf?: DereferencedSchema[];
-  items?: DereferencedSchema;
-  properties?: Record<string, DereferencedSchema>;
-  additionalProperties?: DereferencedSchema | boolean;
-  description?: string;
-  format?: string;
-  default?: unknown;
-  nullable?: boolean;
-  discriminator?: Discriminator;
-  readOnly?: boolean;
-  writeOnly?: boolean;
-  example?: unknown;
-  externalDocs?: ExternalDocumentation;
-  deprecated?: boolean;
-  xml?: XML;
-  /**
-   * This interface was referenced by `Schema`'s JSON-Schema definition
-   * via the `patternProperty` "^x-".
-   */
-  [k: string]: unknown;
+export interface DereferencedSchema extends Schema {
+  readonly not?: DereferencedSchema;
+  readonly allOf?: readonly DereferencedSchema[];
+  readonly oneOf?: readonly DereferencedSchema[];
+  readonly anyOf?: readonly DereferencedSchema[];
+  readonly items?: DereferencedSchema;
+  readonly properties?: Record<string, DereferencedSchema>;
+  readonly additionalProperties?: DereferencedSchema | boolean;
 }
 
 export interface Discriminator {
-  propertyName: string;
-  mapping?: Record<string, string>;
-  [k: string]: unknown;
+  readonly propertyName: string;
+  readonly mapping?: Record<string, string>;
+  readonly [k: string]: unknown;
 }
 
 export interface XML {
-  name?: string;
-  namespace?: string;
-  prefix?: string;
-  attribute?: boolean;
-  wrapped?: boolean;
-  /**
-   * This interface was referenced by `XML`'s JSON-Schema definition
-   * via the `patternProperty` "^x-".
-   */
-  [k: string]: unknown;
+  readonly name?: string;
+  readonly namespace?: string;
+  readonly prefix?: string;
+  readonly attribute?: boolean;
+  readonly wrapped?: boolean;
+  readonly [k: string]: unknown;
 }
 
 export interface Example {
-  summary?: string;
-  description?: string;
-  value?: unknown;
-  externalValue?: string;
-  /**
-   * This interface was referenced by `Example`'s JSON-Schema definition
-   * via the `patternProperty` "^x-".
-   */
-  [k: string]: unknown;
-}
-
-export interface APIKeySecurityScheme {
-  type: 'apiKey';
-  name: string;
-  in: 'header' | 'query' | 'cookie';
-  description?: string;
-  /**
-   * This interface was referenced by `APIKeySecurityScheme`'s JSON-Schema definition
-   * via the `patternProperty` "^x-".
-   */
-  [k: string]: unknown;
-}
-
-export interface OAuth2SecurityScheme {
-  type: 'oauth2';
-  flows: OAuthFlows;
-  description?: string;
-  /**
-   * This interface was referenced by `OAuth2SecurityScheme`'s JSON-Schema definition
-   * via the `patternProperty` "^x-".
-   */
-  [k: string]: unknown;
+  readonly summary?: string;
+  readonly description?: string;
+  readonly value?: unknown;
+  readonly externalValue?: string;
+  readonly [k: string]: unknown;
 }
 
 export interface OAuthFlows {
-  implicit?: ImplicitOAuthFlow;
-  password?: PasswordOAuthFlow;
-  clientCredentials?: ClientCredentialsFlow;
-  authorizationCode?: AuthorizationCodeOAuthFlow;
-  /**
-   * This interface was referenced by `OAuthFlows`'s JSON-Schema definition
-   * via the `patternProperty` "^x-".
-   */
-  [k: string]: unknown;
+  readonly implicit?: ImplicitOAuthFlow;
+  readonly password?: PasswordOAuthFlow;
+  readonly clientCredentials?: ClientCredentialsFlow;
+  readonly authorizationCode?: AuthorizationCodeOAuthFlow;
+  readonly [k: string]: unknown;
 }
 
 export interface ImplicitOAuthFlow {
-  authorizationUrl: string;
-  refreshUrl?: string;
-  scopes: Record<string, string>;
-  /**
-   * This interface was referenced by `ImplicitOAuthFlow`'s JSON-Schema definition
-   * via the `patternProperty` "^x-".
-   */
-  [k: string]: unknown;
+  readonly authorizationUrl: string;
+  readonly refreshUrl?: string;
+  readonly scopes: Record<string, string>;
+  readonly [k: string]: unknown;
 }
 
 export interface PasswordOAuthFlow {
-  tokenUrl: string;
-  refreshUrl?: string;
-  scopes: Record<string, string>;
-  /**
-   * This interface was referenced by `PasswordOAuthFlow`'s JSON-Schema definition
-   * via the `patternProperty` "^x-".
-   */
-  [k: string]: unknown;
+  readonly tokenUrl: string;
+  readonly refreshUrl?: string;
+  readonly scopes: Record<string, string>;
+  readonly [k: string]: unknown;
 }
 
 export interface ClientCredentialsFlow {
-  tokenUrl: string;
-  refreshUrl?: string;
-  scopes: Record<string, string>;
-  /**
-   * This interface was referenced by `ClientCredentialsFlow`'s JSON-Schema definition
-   * via the `patternProperty` "^x-".
-   */
-  [k: string]: unknown;
+  readonly tokenUrl: string;
+  readonly refreshUrl?: string;
+  readonly scopes: Record<string, string>;
+  readonly [k: string]: unknown;
 }
 
 export interface AuthorizationCodeOAuthFlow {
-  authorizationUrl: string;
-  tokenUrl: string;
-  refreshUrl?: string;
-  scopes: Record<string, string>;
-  /**
-   * This interface was referenced by `AuthorizationCodeOAuthFlow`'s JSON-Schema definition
-   * via the `patternProperty` "^x-".
-   */
-  [k: string]: unknown;
+  readonly authorizationUrl: string;
+  readonly tokenUrl: string;
+  readonly refreshUrl?: string;
+  readonly scopes: Record<string, string>;
+  readonly [k: string]: unknown;
 }
 
-export interface OpenIdConnectSecurityScheme {
-  type: 'openIdConnect';
-  openIdConnectUrl: string;
-  description?: string;
-  /**
-   * This interface was referenced by `OpenIdConnectSecurityScheme`'s JSON-Schema definition
-   * via the `patternProperty` "^x-".
-   */
-  [k: string]: unknown;
+// Validation schema for OpenAPI Specification 3.0.X.
+export interface OpenApi {
+  readonly openapi: string;
+  readonly info: Info;
+  readonly externalDocs?: ExternalDocumentation;
+  readonly servers?: readonly Server[];
+  readonly security?: readonly SecurityRequirement[];
+  readonly tags?: readonly Tag[];
+  readonly paths: Paths;
+  readonly components?: Components;
+  readonly [k: string]: unknown;
+}
+
+export interface DereferencedOpenApi {
+  readonly openapi: string;
+  readonly info: Info;
+  readonly externalDocs?: ExternalDocumentation;
+  readonly servers?: readonly Server[];
+  readonly security?: readonly SecurityRequirement[];
+  readonly tags?: readonly Tag[];
+  readonly paths: DereferencedPaths;
+  readonly components?: DereferencedComponents;
 }
