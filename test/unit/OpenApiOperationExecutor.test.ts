@@ -92,7 +92,7 @@ describe('An OpenApiOperationExecutor', (): void => {
     it(`uses the openApiDescription server url with any slashes removed from the
       end if no basePath is specified in the configuration.`,
     async(): Promise<void> => {
-      openApiDescription.servers = [{ url: '/default/server/url/' }];
+      openApiDescription = { ...openApiDescription, servers: [{ url: '/default/server/url/' }]};
       await executor.setOpenapiSpec(openApiDescription);
       const response = await executor.executeOperation('FilesGetMetadata', configuration);
       expect(response).toBe('request response');
@@ -137,8 +137,22 @@ describe('An OpenApiOperationExecutor', (): void => {
     it('uses the globally defined security setting if the operation does not specify one.', async(): Promise<void> => {
       configuration.basePath = '/example/base/path';
       configuration.accessToken = '12345';
-      delete openApiDescription.paths['/path/to/example'].post!.security;
-      openApiDescription.security = [{ oAuth: [ 'files.metadata.read' ]}];
+      openApiDescription = {
+        ...openApiDescription,
+        security: [{ oAuth: [ 'files.metadata.read' ]}],
+        paths: {
+          ...openApiDescription.paths,
+          '/path/to/example': {
+            post: {
+              summary: 'Files - Get Metadata',
+              description: `Returns the metadata for a file or folder.
+                Note: Metadata for the root folder is unsupported.`,
+              operationId: 'FilesGetMetadata',
+              responses: {},
+            },
+          },
+        },
+      };
       await executor.setOpenapiSpec(openApiDescription);
       const response = await executor.executeOperation(
         'FilesGetMetadata',
