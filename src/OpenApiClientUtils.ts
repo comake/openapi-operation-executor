@@ -1,6 +1,6 @@
 /* eslint-disable require-unicode-regexp, no-div-regex, @typescript-eslint/naming-convention */
 import crypto from 'crypto';
-import type { DereferencedResponses, Parameter } from './OpenApiSchemaConfiguration';
+import type { DereferencedParameter, DereferencedResponses, DereferencedSchema } from './OpenApiSchemaConfiguration';
 
 export type PrimitiveJSONValue =
 | string
@@ -165,6 +165,7 @@ export const securityStageOperationSecuritySchemes = {
 
 export const clientCredentialsTokenOperationAndPathInfo = {
   pathReqMethod: 'POST',
+  operationId: 'ClientCredentialsOperation',
   security: [{ basic: []}],
   requestBody: {
     content: {
@@ -180,7 +181,7 @@ export const clientCredentialsTokenOperationAndPathInfo = {
               description: 'The Oauth scopes requested from the provider',
             },
           },
-        },
+        } as DereferencedSchema,
       },
     },
   },
@@ -209,6 +210,7 @@ export const clientCredentialsTokenOperationAndPathInfo = {
 
 export const pkceOauthOperationAndPathInfo = {
   pathReqMethod: 'POST',
+  operationId: 'PkcaOauth',
   parameters: [
     {
       description: 'The code acquired by directing users to the authorizationUrl',
@@ -282,7 +284,7 @@ export const pkceOauthOperationAndPathInfo = {
         type: 'string',
       },
     },
-  ] as Parameter[],
+  ] as DereferencedParameter[],
   responses: {
     200: {
       description: 'Successful operation',
