@@ -7,7 +7,7 @@ export type BaseParameter = {
   readonly required?: boolean;
   readonly deprecated?: boolean;
   readonly explode?: boolean;
-  readonly schema?: Schema;
+  readonly schema?: JSONSchema;
   readonly example?: any;
   readonly examples?: readonly string[] | readonly Reference[] | readonly Example[];
   readonly content?: readonly string[] | readonly MediaType[];
@@ -15,7 +15,7 @@ export type BaseParameter = {
 };
 
 export interface DereferencedBaseParameter extends BaseParameter {
-  readonly schema?: DereferencedSchema;
+  readonly schema?: DereferencedJSONSchema;
   readonly examples?: readonly string[] | readonly Example[];
   readonly content?: readonly string[] | readonly DereferencedMediaType[];
 }
@@ -81,7 +81,7 @@ export interface DereferencedEncoding extends Encoding {
 }
 
 export type MediaType = {
-  readonly schema?: Schema;
+  readonly schema?: JSONSchema;
   readonly example?: any;
   readonly examples?: readonly string[] | readonly Reference[] | readonly Example[];
   readonly encoding?: readonly string[] | readonly Encoding[];
@@ -89,7 +89,7 @@ export type MediaType = {
 };
 
 export interface DereferencedMediaType extends MediaType {
-  readonly schema?: DereferencedSchema;
+  readonly schema?: DereferencedJSONSchema;
   readonly examples?: readonly string[] | readonly Example[];
   readonly encoding?: readonly string[] | readonly DereferencedEncoding[];
 }
@@ -101,7 +101,7 @@ export type Header = {
   readonly required?: boolean;
   readonly deprecated?: boolean;
   readonly explode?: boolean;
-  readonly schema?: Schema;
+  readonly schema?: JSONSchema;
   readonly example?: any;
   readonly examples?: readonly string[] | readonly Reference[] | readonly Example[];
   readonly content?: readonly string[] | readonly MediaType[];
@@ -109,7 +109,7 @@ export type Header = {
 };
 
 export interface DereferencedHeader extends Header {
-  readonly schema?: DereferencedSchema;
+  readonly schema?: DereferencedJSONSchema;
   readonly examples?: readonly string[] | readonly Example[];
   readonly content?: readonly string[] | readonly DereferencedMediaType[];
 }
@@ -200,6 +200,7 @@ export interface Tag {
 export type Paths = Record<string, PathItem>;
 
 export type DereferencedPaths = Record<string, DereferencedPathItem>;
+
 export interface PathItem {
   readonly $ref?: string;
   readonly summary?: string;
@@ -243,7 +244,7 @@ export interface Operation {
   readonly description?: string;
   readonly externalDocs?: ExternalDocumentation;
   readonly operationId?: string;
-  readonly parameters?: readonly Parameter[];
+  readonly parameters?: readonly (Parameter | Reference)[];
   readonly requestBody?: RequestBody | Reference;
   readonly responses: Responses;
   readonly callbacks?: Record<string, Callback>;
@@ -303,7 +304,7 @@ export type Callback = Record<string, PathItem>;
 export type DereferencedCallback = Record<string, DereferencedPathItem>;
 
 export interface Components {
-  readonly schemas?: Record<string, Schema | Reference>;
+  readonly schemas?: Record<string, JSONSchema | Reference>;
   readonly responses?: Record<string, Reference | Response>;
   readonly parameters?: Record<string, Reference | Parameter>;
   readonly examples?: Record<string, Reference | Example>;
@@ -316,7 +317,7 @@ export interface Components {
 }
 
 export interface DereferencedComponents {
-  readonly schemas?: Record<string, DereferencedSchema>;
+  readonly schemas?: Record<string, DereferencedJSONSchema>;
   readonly responses?: Record<string, DereferencedResponse>;
   readonly parameters?: Record<string, DereferencedParameter>;
   readonly examples?: Record<string, Example>;
@@ -328,13 +329,13 @@ export interface DereferencedComponents {
   readonly [k: string]: unknown;
 }
 
-export interface Schema {
+export interface JSONSchema {
   readonly title?: string;
   readonly multipleOf?: number;
   readonly maximum?: number;
-  readonly exclusiveMaximum?: boolean;
+  readonly exclusiveMaximum?: number;
   readonly minimum?: number;
-  readonly exclusiveMinimum?: boolean;
+  readonly exclusiveMinimum?: number;
   readonly maxLength?: number;
   readonly minLength?: number;
   readonly pattern?: string;
@@ -346,13 +347,13 @@ export interface Schema {
   readonly required?: readonly string[];
   readonly enum?: readonly unknown[];
   readonly type?: 'array' | 'boolean' | 'integer' | 'number' | 'object' | 'string';
-  readonly not?: Schema | Reference;
-  readonly allOf?: readonly (Schema | Reference)[];
-  readonly oneOf?: readonly (Schema | Reference)[];
-  readonly anyOf?: readonly (Schema | Reference)[];
-  readonly items?: Schema | Reference;
-  readonly properties?: Record<string, Schema | Reference>;
-  readonly additionalProperties?: Schema | Reference | boolean;
+  readonly not?: JSONSchema | Reference;
+  readonly allOf?: readonly (JSONSchema | Reference)[];
+  readonly oneOf?: readonly (JSONSchema | Reference)[];
+  readonly anyOf?: readonly (JSONSchema | Reference)[];
+  readonly items?: JSONSchema | Reference;
+  readonly properties?: Record<string, JSONSchema | Reference>;
+  readonly additionalProperties?: JSONSchema | Reference | boolean;
   readonly description?: string;
   readonly format?: string;
   readonly default?: unknown;
@@ -367,14 +368,14 @@ export interface Schema {
   readonly [k: string]: unknown;
 }
 
-export interface DereferencedSchema extends Schema {
-  readonly not?: DereferencedSchema;
-  readonly allOf?: readonly DereferencedSchema[];
-  readonly oneOf?: readonly DereferencedSchema[];
-  readonly anyOf?: readonly DereferencedSchema[];
-  readonly items?: DereferencedSchema;
-  readonly properties?: Record<string, DereferencedSchema>;
-  readonly additionalProperties?: DereferencedSchema | boolean;
+export interface DereferencedJSONSchema extends JSONSchema {
+  readonly not?: DereferencedJSONSchema;
+  readonly allOf?: readonly DereferencedJSONSchema[];
+  readonly oneOf?: readonly DereferencedJSONSchema[];
+  readonly anyOf?: readonly DereferencedJSONSchema[];
+  readonly items?: DereferencedJSONSchema;
+  readonly properties?: Record<string, DereferencedJSONSchema>;
+  readonly additionalProperties?: DereferencedJSONSchema | boolean;
 }
 
 export interface Discriminator {
@@ -450,13 +451,7 @@ export interface OpenApi {
   readonly [k: string]: unknown;
 }
 
-export interface DereferencedOpenApi {
-  readonly openapi: string;
-  readonly info: Info;
-  readonly externalDocs?: ExternalDocumentation;
-  readonly servers?: readonly Server[];
-  readonly security?: readonly SecurityRequirement[];
-  readonly tags?: readonly Tag[];
+export interface DereferencedOpenApi extends OpenApi {
   readonly paths: DereferencedPaths;
   readonly components?: DereferencedComponents;
 }
