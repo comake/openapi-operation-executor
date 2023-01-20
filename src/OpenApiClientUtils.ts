@@ -1,6 +1,10 @@
 /* eslint-disable require-unicode-regexp, no-div-regex, @typescript-eslint/naming-convention */
 import crypto from 'crypto';
-import type { DereferencedParameter, DereferencedResponses, DereferencedSchema } from './OpenApiSchemaConfiguration';
+import type {
+  DereferencedParameter,
+  DereferencedResponses,
+  DereferencedJSONSchema,
+} from './OpenApiSchemaConfiguration';
 
 export type PrimitiveJSONValue =
 | string
@@ -181,7 +185,7 @@ export const clientCredentialsTokenOperationAndPathInfo = {
               description: 'The Oauth scopes requested from the provider',
             },
           },
-        } as DereferencedSchema,
+        } as DereferencedJSONSchema,
       },
     },
   },
