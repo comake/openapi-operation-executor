@@ -19,6 +19,7 @@ import type {
   OAuth2SecurityScheme,
   SecurityScheme,
   DereferencedOperation,
+  DereferencedParameter,
 } from './OpenApiSchemaConfiguration';
 
 export interface CodeAuthorizationUrlResponse {
@@ -190,11 +191,12 @@ export class OpenApiOperationExecutor {
         for (const pathReqMethod in pathItem) {
           /* eslint-disable-next-line unicorn/prefer-object-has-own */
           if (Object.prototype.hasOwnProperty.call(pathItem, pathReqMethod)) {
-            const operation = (pathItem as any)[pathReqMethod];
+            const operation = (pathItem as any)[pathReqMethod] as DereferencedOperation;
             if (operation?.operationId === operationId) {
               return {
                 ...operation,
-                security: operation.security || this.openApiDescription!.security,
+                parameters: this.addParametersIfNotDefined(operation.parameters ?? [], pathItem.parameters ?? []),
+                security: operation.security ?? this.openApiDescription!.security,
                 pathName,
                 pathReqMethod,
               };
@@ -205,5 +207,20 @@ export class OpenApiOperationExecutor {
     }
 
     throw new Error(`No OpenApi operation with operationId ${operationId} was found in the spec.`);
+  }
+
+  private addParametersIfNotDefined(
+    parameters: readonly DereferencedParameter[],
+    additionalParameters: readonly DereferencedParameter[],
+  ): DereferencedParameter[] {
+    const newParameters = [ ...parameters ];
+    for (const additionalParameter of additionalParameters) {
+      const alreadyExistsInParameters = parameters
+        .some((param): boolean => param.name === additionalParameter.name && param.in === additionalParameter.in);
+      if (!alreadyExistsInParameters) {
+        newParameters.push(additionalParameter);
+      }
+    }
+    return newParameters;
   }
 }
