@@ -41,7 +41,7 @@ describe('An OpenApiOperationExecutor', (): void => {
           },
         },
       };
-      configuration = {};
+      configuration = undefined;
       paramFactory = {};
       sendRequest = jest.fn().mockResolvedValue('request response');
       (OpenApiAxiosParamFactory as jest.Mock).mockReturnValue(paramFactory);
@@ -67,7 +67,7 @@ describe('An OpenApiOperationExecutor', (): void => {
     });
 
     it('executes the operation with the operationId in the configuration.', async(): Promise<void> => {
-      configuration.basePath = '/example/base/path';
+      configuration = { basePath: '/example/base/path' };
       await executor.setOpenapiSpec(openApiDescription);
       const response = await executor.executeOperation(
         'FilesGetMetadata',
@@ -81,6 +81,7 @@ describe('An OpenApiOperationExecutor', (): void => {
           ...openApiDescription.paths['/path/to/example'].post,
           pathName: '/path/to/example',
           pathReqMethod: 'post',
+          parameters: [],
         },
         { basePath: '/example/base/path' },
         {},
@@ -101,6 +102,7 @@ describe('An OpenApiOperationExecutor', (): void => {
           ...openApiDescription.paths['/path/to/example'].post,
           pathName: '/path/to/example',
           pathReqMethod: 'post',
+          parameters: [],
         },
         { basePath: '/default/server/url' },
         {},
@@ -119,6 +121,7 @@ describe('An OpenApiOperationExecutor', (): void => {
             ...openApiDescription.paths['/path/to/example'].post,
             pathName: '/path/to/example',
             pathReqMethod: 'post',
+            parameters: [],
           },
           { basePath: '' },
           {},
@@ -135,7 +138,7 @@ describe('An OpenApiOperationExecutor', (): void => {
     });
 
     it('uses the globally defined security setting if the operation does not specify one.', async(): Promise<void> => {
-      configuration.basePath = '/example/base/path';
+      configuration = { basePath: '/example/base/path' };
       configuration.accessToken = '12345';
       openApiDescription = {
         ...openApiDescription,
@@ -167,12 +170,79 @@ describe('An OpenApiOperationExecutor', (): void => {
           security: [{ oAuth: [ 'files.metadata.read' ]}],
           pathName: '/path/to/example',
           pathReqMethod: 'post',
+          parameters: [],
         },
         configuration,
         {},
       );
       expect(OpenApiClientAxiosApi).toHaveBeenCalledWith(paramFactory, '/example/base/path');
       expect(sendRequest).toHaveBeenCalledWith({ arg: 'abc' }, { option: 123 });
+    });
+
+    it(`uses parameters defined in the operation and it's containing pathItem, 
+      deferring to the operation specific ones if duplicated.`,
+    async(): Promise<void> => {
+      configuration = { basePath: '/example/base/path' };
+      openApiDescription = {
+        ...openApiDescription,
+        paths: {
+          ...openApiDescription.paths,
+          '/path/to/example': {
+            parameters: [
+              {
+                name: 'param1',
+                in: 'query',
+              },
+              {
+                name: 'param2',
+                in: 'query',
+              },
+            ],
+            post: {
+              ...openApiDescription.paths['/path/to/example'].post!,
+              parameters: [{
+                name: 'param2',
+                in: 'query',
+                schema: {
+                  type: 'string',
+                },
+              }],
+            },
+          },
+        },
+      };
+      await executor.setOpenapiSpec(openApiDescription);
+      const response = await executor.executeOperation(
+        'FilesGetMetadata',
+        configuration,
+        { param1: 'abc', param2: 123 },
+      );
+      expect(response).toBe('request response');
+      expect(OpenApiAxiosParamFactory).toHaveBeenCalledWith(
+        {
+          ...openApiDescription.paths['/path/to/example'].post,
+          security: [{ oAuth: [ 'files.metadata.read' ]}],
+          pathName: '/path/to/example',
+          pathReqMethod: 'post',
+          parameters: [
+            {
+              name: 'param2',
+              in: 'query',
+              schema: {
+                type: 'string',
+              },
+            },
+            {
+              name: 'param1',
+              in: 'query',
+            },
+          ],
+        },
+        configuration,
+        {},
+      );
+      expect(OpenApiClientAxiosApi).toHaveBeenCalledWith(paramFactory, '/example/base/path');
+      expect(sendRequest).toHaveBeenCalledWith({ param1: 'abc', param2: 123 }, undefined);
     });
   });
 

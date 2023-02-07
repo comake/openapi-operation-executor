@@ -50,7 +50,7 @@ const JSON_CONTENT_TYPE = 'application/json';
  * Not yet supported:
   * - Operation parameters set through cookies using the `in` field set to `cookies`
   * - Implementation of the `style` and `explode` parameter fields to change the way parameter values are serialized
-  * - Security schemes other those with `type` set to `oAuth`, `apiKey`, or `http` with scheme `basic`.
+  * - Security schemes other than those with `type` set to `oAuth`, `apiKey`, or `http` with scheme `basic`.
   *   Eg `mutualTLS` and `openIdConnect` are not supported
   * - Validation of the supplied args used in a `requestBody`
   * - The `callbacks` field on an operation
