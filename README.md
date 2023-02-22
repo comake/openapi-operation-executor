@@ -68,6 +68,12 @@ These are the available config options for making requests (in Typescript):
 
 ```ts
 export interface OpenApiClientConfiguration {
+    /**
+  * Parameter for JSON Web Token security
+  */
+  jwt?: string
+  | Promise<string>
+  | (() => string) | (() => Promise<string>);
   /**
   * Parameter for apiKey security
   * @param name - security name
@@ -102,10 +108,11 @@ export interface OpenApiClientConfiguration {
 }
 ```
 
-⚠️ This library currently supports OpenApi security types `oauth2`, `apiKey`, and `http` with scheme `basic`. See [the OpenApi Spec](https://spec.openapis.org/oas/v3.1.0#security-scheme-object) for reference. 
+⚠️ This library currently supports OpenApi security types `oauth2`, `apiKey`, and `http` (with scheme `basic` or `bearer`). See [the OpenApi Spec](https://spec.openapis.org/oas/v3.1.0#security-scheme-object) for reference. 
 - When using `oauth2`type  security, if an `accessToken` string or function is supplied, an `Authorization` header will be added with the value `Bearer <accessToken>`.
-- When using `apiKey` type security, if an `apiKey` is supplied, it will be added to the header or query of the request depending on the OpenAPI spec's Security Schemes. This library does not work with apiKeys as cookies.
+- When using `apiKey` type security, if an `apiKey` string or function supplied, the return value will be added to the header or query of the request depending on the OpenAPI spec's Security Schemes. This library does not work with apiKeys as cookies.
 - When using `http` security with the `basic` scheme, if a `username` and `password` are supplied, an `Authorization` header will be added with the value `Basic CREDENTIALS` where `CREDENTIALS` is the username and password concatenated with a colon character ":" and base64 encoded.
+- When using `http` security with the `bearer` scheme, if a `jwt` string or function is supplied, an `Authorization` header will be added with the value `Bearer <jwt>`.
 - `mutualTLS` and `openIdConnect`security types are not supported.
 
 **Return value**
