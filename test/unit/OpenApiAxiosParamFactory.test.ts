@@ -163,6 +163,65 @@ describe('An OpenApiAxiosParamFactory', (): void => {
       });
   });
 
+  describe('jwt bearer security', (): void => {
+    beforeEach(async(): Promise<void> => {
+      schemes = {
+        jwt: {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+        },
+      };
+      operation.security = [{ jwt: []}];
+    });
+
+    it('does not add the Authorization header if jwt is not supplied.', async(): Promise<void> => {
+      openApiAxiosParamFactory = new OpenApiAxiosParamFactory(
+        { ...operation, pathName, pathReqMethod, parameters, requestBody },
+        configuration,
+        schemes,
+      );
+      const response = await openApiAxiosParamFactory.createParams();
+      expect(response.options.headers?.Authorization).toBeUndefined();
+    });
+
+    it('does not add the Authorization header if the security scheme is not specified.',
+      async(): Promise<void> => {
+        configuration = { jwt: 'abc123' };
+        openApiAxiosParamFactory = new OpenApiAxiosParamFactory(
+          { ...operation, pathName, pathReqMethod, parameters, requestBody },
+          configuration,
+          {},
+        );
+        const response = await openApiAxiosParamFactory.createParams();
+        expect(response.options.headers?.Authorization).toBeUndefined();
+      });
+
+    it('adds the Authorization header if jwt bearer security scheme and jwt token are specified.',
+      async(): Promise<void> => {
+        configuration = { jwt: 'abc123' };
+        openApiAxiosParamFactory = new OpenApiAxiosParamFactory(
+          { ...operation, pathName, pathReqMethod, parameters, requestBody },
+          configuration,
+          schemes,
+        );
+        const response = await openApiAxiosParamFactory.createParams();
+        expect(response.options.headers?.Authorization).toBe('Bearer abc123');
+      });
+
+    it('adds the Authorization header if jwt bearer security scheme and jwt function are specified.',
+      async(): Promise<void> => {
+        configuration = { jwt: (): string => 'abc123' };
+        openApiAxiosParamFactory = new OpenApiAxiosParamFactory(
+          { ...operation, pathName, pathReqMethod, parameters, requestBody },
+          configuration,
+          schemes,
+        );
+        const response = await openApiAxiosParamFactory.createParams();
+        expect(response.options.headers?.Authorization).toBe('Bearer abc123');
+      });
+  });
+
   describe('apiKey security', (): void => {
     beforeEach(async(): Promise<void> => {
       operation.security = [{ apiKey: []}];

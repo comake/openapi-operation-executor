@@ -1,5 +1,11 @@
 export interface OpenApiClientConfiguration {
   /**
+  * Parameter for JSON Web Token security
+  */
+  jwt?: string
+  | Promise<string>
+  | (() => string) | (() => Promise<string>);
+  /**
   * Parameter for apiKey security
   * @param name - security name
   */
