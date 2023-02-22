@@ -39,6 +39,7 @@ const SECURITY_TYPES = {
 };
 
 const BASIC_SCHEME_TYPE = 'basic';
+const BEARER_SCHEME_TYPE = 'bearer';
 
 const FORM_CONTENT_TYPE = 'application/x-www-form-urlencoded';
 const JSON_CONTENT_TYPE = 'application/json';
@@ -116,6 +117,12 @@ export class OpenApiAxiosParamFactory {
       return;
     }
 
+    const bearerSecurity = this.findBearerSecurityRequirement();
+    if (bearerSecurity && this.configuration.jwt) {
+      await this.setBearerAuthToHeaderObject(this.headerParameters);
+      return;
+    }
+
     const basicSecurity = this.findBasicSecurityRequirement();
     if (basicSecurity && this.configuration.username && this.configuration.password) {
       await this.setBasicAuthToHeaderObject(this.headerParameters);
@@ -126,6 +133,12 @@ export class OpenApiAxiosParamFactory {
     if (apiKeySecurity && this.configuration.apiKey) {
       await this.setApiKeyToHeaderOrQueryObject();
     }
+  }
+
+  private findBearerSecurityRequirement(): SecurityRequirement | undefined {
+    return this.findSecurityRequirementMatchingScheme(
+      (scheme: SecurityScheme): boolean => scheme.type === SECURITY_TYPES.http && scheme.scheme === BEARER_SCHEME_TYPE,
+    );
   }
 
   private findBasicSecurityRequirement(): SecurityRequirement | undefined {
@@ -147,7 +160,7 @@ export class OpenApiAxiosParamFactory {
   }
 
   private findSecurityRequirementMatchingScheme(
-    schemeMatcher: (sheme: SecurityScheme) => boolean,
+    schemeMatcher: (scheme: SecurityScheme) => boolean,
   ): SecurityRequirement | undefined {
     if (this.security) {
       return this.security.find((securityReq: SecurityRequirement): boolean => {
@@ -183,7 +196,8 @@ export class OpenApiAxiosParamFactory {
 
   /**
    * Helper that sets the Bearer type Authorization field of an object. Generates an access token
-   * if the configuration specifies an access token generation function, just uses the value if not.
+   * if the {@link OpenApiClientConfiguration} specifies an access token generation function,
+   * uses static the value if not.
    *
    * @param headerParameters - The header parameter object
    * @param name - The security name used to generate an access token
@@ -194,10 +208,32 @@ export class OpenApiAxiosParamFactory {
     name: string,
     scopes: readonly string[],
   ): Promise<void> {
-    const localVarAccessTokenValue = typeof this.configuration.accessToken === 'function'
+    const accessToken = await this.getAccessToken(name, scopes);
+    headerParameters.Authorization = `Bearer ${accessToken}`;
+  }
+
+  private async getAccessToken(name: string, scopes: readonly string[]): Promise<string | undefined> {
+    return typeof this.configuration.accessToken === 'function'
       ? await this.configuration.accessToken(name, scopes)
       : await this.configuration.accessToken;
-    headerParameters.Authorization = `Bearer ${localVarAccessTokenValue}`;
+  }
+
+  /**
+   * Helper that sets the Bearer type Authorization field of an object. Generates a jwt token
+   * if the {@link OpenApiClientConfiguration} specifies an jwt generation function,
+   * uses the static value if not.
+   *
+   * @param headerParameters - The header parameter object
+   */
+  private async setBearerAuthToHeaderObject(headerParameters: any): Promise<void> {
+    const jwt = await this.getJwt();
+    headerParameters.Authorization = `Bearer ${jwt}`;
+  }
+
+  private async getJwt(): Promise<string | undefined> {
+    return typeof this.configuration.jwt === 'function'
+      ? await this.configuration.jwt()
+      : await this.configuration.jwt;
   }
 
   /**
