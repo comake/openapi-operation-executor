@@ -4,7 +4,7 @@
 
 This library provides a helper method to perform operations (web requests) specified by an [OpenAPI spec](https://www.openapis.org/).
 
-Every operation in an OpenAPI spec has a unique field used to identify it, called an operationId. The `executeOperation` method of this library allows a developer to send properly formatted requests to an API by supplying an OpenAPI spec (as JSON), the operationId of the operation they want to perform, and the proper arguments for that operation. This makes it so that the developer does not have to take the time to generate an SDK out of an OpenAPI spec every time they need to work with a new spec or every time one changes (for example using the [openapi npm package](https://github.com/openapi/openapi)). Not having an SDK installed per API they need to interact with also reduces their application's bundle size.
+Every operation in an OpenAPI spec has a unique field used to identify it, called an `operationId`. This library allows you to send properly formatted requests to an API by supplying an OpenAPI spec (as JSON), the `operationId` of the operation you want to perform, and the arguments for that operation. This makes it so that you do not have to take the time to generate an SDK out of an OpenAPI spec every time you need to work with a new spec or everytime an API/spec changes (for example using the [openapi npm package](https://github.com/openapi/openapi)). This also reduces your application's bundle size by removing dependencies on multiple SDKs per API your application needs to interact with.
 
 ## Installation
 
@@ -41,11 +41,11 @@ const response = await executor.executeOperation(
 ```
 
 ## Browser support
-To use OpenApiOperationExecutor in a browser, you'll need to use a bundling tool such as Webpack, Rollup, Parcel, or Browserify. Some bundlers may require a bit of configuration, such as setting browser: true in rollup-plugin-resolve.
+To use OpenApiOperationExecutor in a browser, you'll need to use a bundling tool such as Webpack, Rollup, Parcel, or Browserify. Some bundlers may require a bit of configuration, such as setting `browser: true` in rollup-plugin-resolve.
 
 ## API
 
-#### executeOperation
+### executeOperation
 
 The `executeOperation` method of an `OpenApiOperationExecutor` instance sends a properly formatted web request to the API described in the provided OpenAPI spec (as JSON). This library uses [axios](https://github.com/axios/axios) to send web requests.
 
@@ -59,8 +59,8 @@ Requests automatically use the method (GET, POST, etc.) that the OpenAPI operati
 | :--- | :--- | :--- | :--- |
 | `operationId` | `string` | Required | The operationId of the operation to perform. |
 | `configuration` | `object` | Required | An `OpenApiClientConfiguration` object.  |
-| `args` |  `any` |   | Data conformant to the specified `requestBody` of the OpenAPI operation being performed to be send to the API as the body of the request. Will be serialized according to the `Content-Type` header which is set to `application/json` right now. |
-| `options` | `object` |   | An `AxiosRequestConfig` object. See [the axios API documentation](https://github.com/axios/axios#request-config) for reference. |
+| `args` |  `any` |   | Data conformant to the specified `requestBody` of the OpenAPI operation being performed to be send to the API as the body of the request. It will be serialized according to the `Content-Type` header, which is always set to `application/json`. |
+| `options` | `object` |   | An `AxiosRequestConfig` object to override any request configurations. See [the axios API documentation](https://github.com/axios/axios#request-config) for reference. |
 
 **Configuration**
 
@@ -68,25 +68,36 @@ These are the available config options for making requests (in Typescript):
 
 ```ts
 export interface OpenApiClientConfiguration {
-    /**
-  * Parameter for JSON Web Token security
+  /**
+  * Parameter for HTTP authentication with the Bearer security scheme
   */
-  jwt?: string
+  bearerToken?: string
   | Promise<string>
   | (() => string) | (() => Promise<string>);
   /**
-  * Parameter for apiKey security
+  * Parameter for apiKey security where the key is the name 
+  * of the api key to be added to the header or query. Multiple api keys 
+  * may be provided by name.
+  * @param name - security name
+  */
+  [key: string]: undefined
+  | string
+  | Promise<string>
+  | ((name: string) => string) | ((name: string) => Promise<string>);
+  /**
+  * Parameter for apiKey security which will be used if no named api key
+  * matching the required security scheme is supplied.
   * @param name - security name
   */
   apiKey?: string
   | Promise<string>
   | ((name: string) => string) | ((name: string) => Promise<string>);
   /**
-  * Parameter for basic security
+  * Parameter for HTTP authentication with the Basic security scheme
   */
   username?: string;
   /**
-  * Parameter for basic security
+  * Parameter for HTTP authentication with the Basic security scheme
   */
   password?: string;
   /**
@@ -109,11 +120,11 @@ export interface OpenApiClientConfiguration {
 ```
 
 ⚠️ This library currently supports OpenApi security types `oauth2`, `apiKey`, and `http` (with scheme `basic` or `bearer`). See [the OpenApi Spec](https://spec.openapis.org/oas/v3.1.0#security-scheme-object) for reference. 
-- When using `oauth2`type  security, if an `accessToken` string or function is supplied, an `Authorization` header will be added with the value `Bearer <accessToken>`.
+- When using `oauth2` type  security, if an `accessToken` string or function is supplied, an `Authorization` header will be added with the value `Bearer <accessToken>`.
 - When using `apiKey` type security, if an `apiKey` string or function supplied, the return value will be added to the header or query of the request depending on the OpenAPI spec's Security Schemes. This library does not work with apiKeys as cookies.
-- When using `http` security with the `basic` scheme, if a `username` and `password` are supplied, an `Authorization` header will be added with the value `Basic CREDENTIALS` where `CREDENTIALS` is the username and password concatenated with a colon character ":" and base64 encoded.
-- When using `http` security with the `bearer` scheme, if a `jwt` string or function is supplied, an `Authorization` header will be added with the value `Bearer <jwt>`.
-- `mutualTLS` and `openIdConnect`security types are not supported.
+- When using `http` security with the `basic` scheme, if a `username` and `password` are supplied, an `Authorization` header will be added with the value `Basic {CREDENTIALS}` where `CREDENTIALS` is the username and password concatenated with a colon character ":" and base64 encoded as defined in the spec ([RFC7617](https://www.rfc-editor.org/rfc/rfc7617.html)).
+- When using `http` security with the `bearer` scheme, if a `bearerToken` string or function is supplied, an `Authorization` header will be added with the value `Bearer {bearerToken}` as deinfed in the spec ([RFC6750](https://www.iana.org/go/rfc6750)).
+- `mutualTLS` and `openIdConnect` security types are not yet supported.
 
 **Return value**
 

@@ -65,7 +65,7 @@ describe('An OpenApiAxiosParamFactory', (): void => {
         expect(response.options.headers?.Authorization).toBeUndefined();
       });
 
-    it('does not add the Authorization header if the security scheme is not specified.',
+    it('throws an error if the required security scheme does not exist.',
       async(): Promise<void> => {
         operation.security = [{ oAuth: [ 'example/scope' ]}];
         configuration.accessToken = '12345';
@@ -74,8 +74,9 @@ describe('An OpenApiAxiosParamFactory', (): void => {
           configuration,
           {},
         );
-        const response = await openApiAxiosParamFactory.createParams();
-        expect(response.options.headers?.Authorization).toBeUndefined();
+        await expect(openApiAxiosParamFactory.createParams()).rejects.toThrow(
+          'Could not satisfy security requirments with the provided configuration.',
+        );
       });
 
     it('adds the Authorization header if oAuth security scopes and an accessToken are specified.',
@@ -116,29 +117,31 @@ describe('An OpenApiAxiosParamFactory', (): void => {
       operation.security = [{ basic: []}];
     });
 
-    it('does not add the Authorization header if username is not defined.', async(): Promise<void> => {
+    it('throws an error if username is not defined.', async(): Promise<void> => {
       configuration.password = 'abc123';
       openApiAxiosParamFactory = new OpenApiAxiosParamFactory(
         { ...operation, pathName, pathReqMethod, parameters, requestBody },
         configuration,
         schemes,
       );
-      const response = await openApiAxiosParamFactory.createParams();
-      expect(response.options.headers?.Authorization).toBeUndefined();
+      await expect(openApiAxiosParamFactory.createParams()).rejects.toThrow(
+        'Could not satisfy security requirments with the provided configuration.',
+      );
     });
 
-    it('does not add the Authorization header if password is not defined.', async(): Promise<void> => {
+    it('throws an error if password is not defined.', async(): Promise<void> => {
       configuration.username = 'adlerfaulkner';
       openApiAxiosParamFactory = new OpenApiAxiosParamFactory(
         { ...operation, pathName, pathReqMethod, parameters, requestBody },
         configuration,
         schemes,
       );
-      const response = await openApiAxiosParamFactory.createParams();
-      expect(response.options.headers?.Authorization).toBeUndefined();
+      await expect(openApiAxiosParamFactory.createParams()).rejects.toThrow(
+        'Could not satisfy security requirments with the provided configuration.',
+      );
     });
 
-    it('does not add the Authorization header if the security scheme is not specified.',
+    it('throws an error if the security scheme is not specified.',
       async(): Promise<void> => {
         configuration = { username: 'adlerfaulkner', password: 'abc123' };
         openApiAxiosParamFactory = new OpenApiAxiosParamFactory(
@@ -146,8 +149,9 @@ describe('An OpenApiAxiosParamFactory', (): void => {
           configuration,
           {},
         );
-        const response = await openApiAxiosParamFactory.createParams();
-        expect(response.options.headers?.Authorization).toBeUndefined();
+        await expect(openApiAxiosParamFactory.createParams()).rejects.toThrow(
+          'Could not satisfy security requirments with the provided configuration.',
+        );
       });
 
     it('adds the Authorization header if basic security scheme and username and password are specified.',
@@ -163,7 +167,7 @@ describe('An OpenApiAxiosParamFactory', (): void => {
       });
   });
 
-  describe('jwt bearer security', (): void => {
+  describe('bearer token security', (): void => {
     beforeEach(async(): Promise<void> => {
       schemes = {
         jwt: {
@@ -175,31 +179,33 @@ describe('An OpenApiAxiosParamFactory', (): void => {
       operation.security = [{ jwt: []}];
     });
 
-    it('does not add the Authorization header if jwt is not supplied.', async(): Promise<void> => {
+    it('throws an error if a bearer token is not supplied.', async(): Promise<void> => {
       openApiAxiosParamFactory = new OpenApiAxiosParamFactory(
         { ...operation, pathName, pathReqMethod, parameters, requestBody },
         configuration,
         schemes,
       );
-      const response = await openApiAxiosParamFactory.createParams();
-      expect(response.options.headers?.Authorization).toBeUndefined();
+      await expect(openApiAxiosParamFactory.createParams()).rejects.toThrow(
+        'Could not satisfy security requirments with the provided configuration.',
+      );
     });
 
-    it('does not add the Authorization header if the security scheme is not specified.',
+    it('throws an error if the security scheme is not specified.',
       async(): Promise<void> => {
-        configuration = { jwt: 'abc123' };
+        configuration = { bearerToken: 'abc123' };
         openApiAxiosParamFactory = new OpenApiAxiosParamFactory(
           { ...operation, pathName, pathReqMethod, parameters, requestBody },
           configuration,
           {},
         );
-        const response = await openApiAxiosParamFactory.createParams();
-        expect(response.options.headers?.Authorization).toBeUndefined();
+        await expect(openApiAxiosParamFactory.createParams()).rejects.toThrow(
+          'Could not satisfy security requirments with the provided configuration.',
+        );
       });
 
-    it('adds the Authorization header if jwt bearer security scheme and jwt token are specified.',
+    it('adds the Authorization header if bearer security scheme and a bearer token is specified.',
       async(): Promise<void> => {
-        configuration = { jwt: 'abc123' };
+        configuration = { bearerToken: 'abc123' };
         openApiAxiosParamFactory = new OpenApiAxiosParamFactory(
           { ...operation, pathName, pathReqMethod, parameters, requestBody },
           configuration,
@@ -209,9 +215,9 @@ describe('An OpenApiAxiosParamFactory', (): void => {
         expect(response.options.headers?.Authorization).toBe('Bearer abc123');
       });
 
-    it('adds the Authorization header if jwt bearer security scheme and jwt function are specified.',
+    it('adds the Authorization header if bearer security scheme and bearer token function are specified.',
       async(): Promise<void> => {
-        configuration = { jwt: (): string => 'abc123' };
+        configuration = { bearerToken: (): string => 'abc123' };
         openApiAxiosParamFactory = new OpenApiAxiosParamFactory(
           { ...operation, pathName, pathReqMethod, parameters, requestBody },
           configuration,
@@ -220,6 +226,34 @@ describe('An OpenApiAxiosParamFactory', (): void => {
         const response = await openApiAxiosParamFactory.createParams();
         expect(response.options.headers?.Authorization).toBe('Bearer abc123');
       });
+  });
+
+  describe('non basic or bearer http security', (): void => {
+    beforeEach(async(): Promise<void> => {
+      schemes = {
+        basic: {
+          type: 'http',
+          scheme: 'digest',
+        },
+      };
+      operation.security = [{ basic: []}];
+    });
+
+    it('throws an error.', async(): Promise<void> => {
+      configuration = {
+        username: 'adlerfaulkner',
+        password: 'abc123',
+        bearerToken: 'abc123',
+      };
+      openApiAxiosParamFactory = new OpenApiAxiosParamFactory(
+        { ...operation, pathName, pathReqMethod, parameters, requestBody },
+        configuration,
+        schemes,
+      );
+      await expect(openApiAxiosParamFactory.createParams()).rejects.toThrow(
+        'Could not satisfy security requirments with the provided configuration.',
+      );
+    });
   });
 
   describe('apiKey security', (): void => {
@@ -233,6 +267,18 @@ describe('An OpenApiAxiosParamFactory', (): void => {
         },
       };
     });
+
+    it('adds the named header if apiKey security, an apiKey security scheme, and the named header are specified.',
+      async(): Promise<void> => {
+        configuration['X-API-KEY'] = '12345';
+        openApiAxiosParamFactory = new OpenApiAxiosParamFactory(
+          { ...operation, pathName, pathReqMethod, parameters, requestBody },
+          configuration,
+          schemes,
+        );
+        const response = await openApiAxiosParamFactory.createParams();
+        expect(response.options.headers?.['X-API-KEY']).toBe('12345');
+      });
 
     it('adds the apikey header if apiKey security, an apiKey security scheme, and an apikey are specified.',
       async(): Promise<void> => {
@@ -302,6 +348,34 @@ describe('An OpenApiAxiosParamFactory', (): void => {
         await expect(openApiAxiosParamFactory.createParams())
           .rejects.toThrow('apiKey security scheme in cookie is not supported.');
       });
+  });
+
+  describe('unsupported security type', (): void => {
+    beforeEach(async(): Promise<void> => {
+      schemes = {
+        unsupported: {
+          type: 'dpop',
+        },
+      };
+      operation.security = [{ unsupported: []}];
+    });
+
+    it('throws an error.', async(): Promise<void> => {
+      configuration = {
+        username: 'adlerfaulkner',
+        password: 'abc123',
+        bearerToken: 'abc123',
+        apiKey: 'abc123',
+      };
+      openApiAxiosParamFactory = new OpenApiAxiosParamFactory(
+        { ...operation, pathName, pathReqMethod, parameters, requestBody },
+        configuration,
+        schemes,
+      );
+      await expect(openApiAxiosParamFactory.createParams()).rejects.toThrow(
+        'Could not satisfy security requirments with the provided configuration.',
+      );
+    });
   });
 
   it('adds header parameters to the headers if parameters are specified with the "header" location.',

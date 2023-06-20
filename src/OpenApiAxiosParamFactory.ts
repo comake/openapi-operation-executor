@@ -14,7 +14,6 @@ import type {
   APIKeySecurityScheme,
   DereferencedComponents,
   Parameter,
-  SecurityScheme,
   RequestBody,
 } from './OpenApiSchemaConfiguration';
 
@@ -110,88 +109,88 @@ export class OpenApiAxiosParamFactory {
    * Sets the security settings on the header or query parameters object if oAuth or apikey security is set.
    */
   private async setSecurityIfNeeded(): Promise<void> {
-    const oAuthSecurity = this.findOauthSecurityRequirement();
-    if (oAuthSecurity && this.configuration.accessToken) {
-      const schemeName = Object.keys(oAuthSecurity)[0];
-      await this.setOAuthToHeaderObject(this.headerParameters, schemeName, oAuthSecurity[schemeName]);
-      return;
-    }
-
-    const bearerSecurity = this.findBearerSecurityRequirement();
-    if (bearerSecurity && this.configuration.jwt) {
-      await this.setBearerAuthToHeaderObject(this.headerParameters);
-      return;
-    }
-
-    const basicSecurity = this.findBasicSecurityRequirement();
-    if (basicSecurity && this.configuration.username && this.configuration.password) {
-      await this.setBasicAuthToHeaderObject(this.headerParameters);
-      return;
-    }
-
-    const apiKeySecurity = this.findApiKeySecurityRequirement();
-    if (apiKeySecurity && this.configuration.apiKey) {
-      await this.setApiKeyToHeaderOrQueryObject();
+    if (this.security && this.security.length > 0) {
+      const matchingSecurityReq = this.findSecurityReqMatchingConfiguration(this.security);
+      if (matchingSecurityReq) {
+        await this.setSecurityFromSecurityRequirement(matchingSecurityReq);
+      } else {
+        throw new Error('Could not satisfy security requirments with the provided configuration.');
+      }
     }
   }
 
-  private findBearerSecurityRequirement(): SecurityRequirement | undefined {
-    return this.findSecurityRequirementMatchingScheme(
-      (scheme: SecurityScheme): boolean => scheme.type === SECURITY_TYPES.http && scheme.scheme === BEARER_SCHEME_TYPE,
-    );
-  }
-
-  private findBasicSecurityRequirement(): SecurityRequirement | undefined {
-    return this.findSecurityRequirementMatchingScheme(
-      (scheme: SecurityScheme): boolean => scheme.type === SECURITY_TYPES.http && scheme.scheme === BASIC_SCHEME_TYPE,
-    );
-  }
-
-  private findOauthSecurityRequirement(): SecurityRequirement | undefined {
-    return this.findSecurityRequirementMatchingScheme(
-      (scheme: SecurityScheme): boolean => scheme.type === SECURITY_TYPES.oauth2,
-    );
-  }
-
-  private findApiKeySecurityRequirement(): SecurityRequirement | undefined {
-    return this.findSecurityRequirementMatchingScheme(
-      (scheme: SecurityScheme): boolean => scheme.type === SECURITY_TYPES.apiKey,
-    );
-  }
-
-  private findSecurityRequirementMatchingScheme(
-    schemeMatcher: (scheme: SecurityScheme) => boolean,
+  private findSecurityReqMatchingConfiguration(
+    securityReqs: readonly SecurityRequirement[],
   ): SecurityRequirement | undefined {
-    if (this.security) {
-      return this.security.find((securityReq: SecurityRequirement): boolean => {
-        const schemeName = Object.keys(securityReq)[0];
+    return securityReqs.find((securityReq): boolean => {
+      const schemeNames = Object.keys(securityReq);
+      return schemeNames.every((schemeName): boolean => {
         const scheme = this.securitySchemes[schemeName];
-        return scheme ? schemeMatcher(scheme) : false;
+        if (scheme) {
+          switch (scheme.type) {
+            case SECURITY_TYPES.oauth2:
+              return this.configuration.accessToken !== undefined;
+            case SECURITY_TYPES.http:
+              if (scheme.scheme === BASIC_SCHEME_TYPE) {
+                return this.configuration.username !== undefined && this.configuration.password !== undefined;
+              }
+              if (scheme.scheme === BEARER_SCHEME_TYPE) {
+                return this.configuration.bearerToken !== undefined;
+              }
+              return false;
+            case SECURITY_TYPES.apiKey:
+              return (scheme as APIKeySecurityScheme).name in this.configuration ||
+                this.configuration.apiKey !== undefined;
+            default:
+              return false;
+          }
+        }
+        return false;
       });
+    });
+  }
+
+  private async setSecurityFromSecurityRequirement(securityReq: SecurityRequirement): Promise<void> {
+    for (const schemeName of Object.keys(securityReq)) {
+      const scheme = this.securitySchemes[schemeName];
+      // eslint-disable-next-line default-case
+      switch (scheme.type) {
+        case SECURITY_TYPES.oauth2:
+          await this.setOAuthToHeaderObject(schemeName, securityReq[schemeName]);
+          break;
+        case SECURITY_TYPES.http:
+          if (scheme.scheme === BASIC_SCHEME_TYPE) {
+            await this.setBasicAuthToHeaderObject();
+          } else if (scheme.scheme === BEARER_SCHEME_TYPE) {
+            await this.setBearerAuthToHeaderObject();
+          }
+          break;
+        case SECURITY_TYPES.apiKey:
+          await this.setApiKeyToHeaderOrQueryObject(scheme as APIKeySecurityScheme);
+          break;
+      }
     }
   }
 
   /**
    * Sets an api key field of an object to the apiKey value in the {@link OpenApiClientConfiguration}.
    */
-  private async setApiKeyToHeaderOrQueryObject(): Promise<void> {
-    const securityScheme = this.securitySchemes.apiKey as APIKeySecurityScheme | undefined;
-    if (securityScheme) {
-      const apiKey = await this.getApiKey(securityScheme.name);
-      if (securityScheme.in === PARAMETER_AND_SCHEME_LOCATIONS.header) {
-        this.headerParameters[securityScheme.name] = apiKey!;
-      } else if (securityScheme.in === PARAMETER_AND_SCHEME_LOCATIONS.query) {
-        this.queryParameters[securityScheme.name] = apiKey!;
-      } else {
-        throw new Error(`apiKey security scheme in ${securityScheme.in} is not supported.`);
-      }
+  private async setApiKeyToHeaderOrQueryObject(securityScheme: APIKeySecurityScheme): Promise<void> {
+    const apiKey = await this.getApiKey(securityScheme.name);
+    if (securityScheme.in === PARAMETER_AND_SCHEME_LOCATIONS.header) {
+      this.headerParameters[securityScheme.name] = apiKey!;
+    } else if (securityScheme.in === PARAMETER_AND_SCHEME_LOCATIONS.query) {
+      this.queryParameters[securityScheme.name] = apiKey!;
+    } else {
+      throw new Error(`apiKey security scheme in ${securityScheme.in} is not supported.`);
     }
   }
 
   private async getApiKey(apiKeyName: string): Promise<string | undefined> {
-    return typeof this.configuration.apiKey === 'function'
-      ? await this.configuration.apiKey(apiKeyName)
-      : await this.configuration.apiKey;
+    const configurationValue = this.configuration[apiKeyName] ?? this.configuration.apiKey;
+    return typeof configurationValue === 'function'
+      ? await configurationValue(apiKeyName)
+      : await configurationValue;
   }
 
   /**
@@ -199,17 +198,15 @@ export class OpenApiAxiosParamFactory {
    * if the {@link OpenApiClientConfiguration} specifies an access token generation function,
    * uses static the value if not.
    *
-   * @param headerParameters - The header parameter object
    * @param name - The security name used to generate an access token
    * @param scopes - oauth2 scopes used to generate an access token
    */
   private async setOAuthToHeaderObject(
-    headerParameters: any,
     name: string,
     scopes: readonly string[],
   ): Promise<void> {
     const accessToken = await this.getAccessToken(name, scopes);
-    headerParameters.Authorization = `Bearer ${accessToken}`;
+    this.headerParameters.Authorization = `Bearer ${accessToken}`;
   }
 
   private async getAccessToken(name: string, scopes: readonly string[]): Promise<string | undefined> {
@@ -219,21 +216,19 @@ export class OpenApiAxiosParamFactory {
   }
 
   /**
-   * Helper that sets the Bearer type Authorization field of an object. Generates a jwt token
-   * if the {@link OpenApiClientConfiguration} specifies an jwt generation function,
+   * Helper that sets the Bearer type Authorization field of an object. Generates a bearer token
+   * if the {@link OpenApiClientConfiguration} specifies an bearer token generation function,
    * uses the static value if not.
-   *
-   * @param headerParameters - The header parameter object
    */
-  private async setBearerAuthToHeaderObject(headerParameters: any): Promise<void> {
-    const jwt = await this.getJwt();
-    headerParameters.Authorization = `Bearer ${jwt}`;
+  private async setBearerAuthToHeaderObject(): Promise<void> {
+    const bearerToken = await this.getBearerToken();
+    this.headerParameters.Authorization = `Bearer ${bearerToken}`;
   }
 
-  private async getJwt(): Promise<string | undefined> {
-    return typeof this.configuration.jwt === 'function'
-      ? await this.configuration.jwt()
-      : await this.configuration.jwt;
+  private async getBearerToken(): Promise<string | undefined> {
+    return typeof this.configuration.bearerToken === 'function'
+      ? await this.configuration.bearerToken()
+      : await this.configuration.bearerToken;
   }
 
   /**
@@ -242,11 +237,11 @@ export class OpenApiAxiosParamFactory {
    *
    * @param headerParameters - The header parameter object
    */
-  private async setBasicAuthToHeaderObject(headerParameters: any): Promise<void> {
+  private async setBasicAuthToHeaderObject(): Promise<void> {
     const credentials = `${this.configuration.username}:${this.configuration.password}`;
     const credentialsBuffer = Buffer.from(credentials, 'utf-8');
     const encodedCredentials = base64URLEncode(credentialsBuffer);
-    headerParameters.Authorization = `Basic ${encodedCredentials}`;
+    this.headerParameters.Authorization = `Basic ${encodedCredentials}`;
   }
 
   /**
