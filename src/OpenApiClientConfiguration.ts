@@ -1,23 +1,34 @@
 export interface OpenApiClientConfiguration {
   /**
-  * Parameter for JSON Web Token security
+  * Parameter for HTTP authentication with the Bearer security scheme
   */
-  jwt?: string
+  bearerToken?: string
   | Promise<string>
   | (() => string) | (() => Promise<string>);
   /**
-  * Parameter for apiKey security
+  * Parameter for apiKey security where the key is the name
+  * of the api key to be added to the header or query. Multiple api keys
+  * may be provided by name.
+  * @param name - security name
+  */
+  [key: string]: undefined
+  | string
+  | Promise<string>
+  | ((name: string) => string) | ((name: string) => Promise<string>);
+  /**
+  * Parameter for apiKey security which will be used if no named api key
+  * matching the required security scheme is supplied.
   * @param name - security name
   */
   apiKey?: string
   | Promise<string>
   | ((name: string) => string) | ((name: string) => Promise<string>);
   /**
-  * Parameter for basic security
+  * Parameter for HTTP authentication with the Basic security scheme
   */
   username?: string;
   /**
-  * Parameter for basic security
+  * Parameter for HTTP authentication with the Basic security scheme
   */
   password?: string;
   /**
