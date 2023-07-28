@@ -5,7 +5,10 @@
     "sourceMap": true,
     "outDir": "dist",
     "resolveJsonModule": true,
-    "moduleResolution": "node"
+    "moduleResolution": "node",
+    "lib": [
+      "ES2021"
+    ]
   },
   "include": [ "src" ],
   "exclude": [ "node_modules" ]

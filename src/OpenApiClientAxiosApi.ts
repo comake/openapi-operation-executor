@@ -1,5 +1,5 @@
 import globalAxios from 'axios';
-import type { AxiosInstance, AxiosResponse } from 'axios';
+import type { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 import type { OpenApiAxiosParamFactory } from './OpenApiAxiosParamFactory';
 
 /**
@@ -20,7 +20,7 @@ export class OpenApiClientAxiosApi {
     this.axios = axios ?? globalAxios;
   }
 
-  public async sendRequest(args?: any, options?: any): Promise<AxiosResponse> {
+  public async sendRequest(args?: Record<string, any>, options?: AxiosRequestConfig): Promise<AxiosResponse> {
     const axiosRequestParams = await this.paramFactory.createParams(args, options);
     const axiosRequestParamsWithBasePath = {
       ...axiosRequestParams.options,

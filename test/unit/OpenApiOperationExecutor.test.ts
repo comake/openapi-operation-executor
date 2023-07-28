@@ -90,10 +90,20 @@ describe('An OpenApiOperationExecutor', (): void => {
       expect(sendRequest).toHaveBeenCalledWith({ arg: 'abc' }, { option: 123 });
     });
 
-    it(`uses the openApiDescription server url with any slashes removed from the
-      end if no basePath is specified in the configuration.`,
+    it(`uses the global server url with any slashes removed from the end and default variables replaced
+      if no basePath is specified in the configuration and the Path Item and Operation do not specify servers.`,
     async(): Promise<void> => {
-      openApiDescription = { ...openApiDescription, servers: [{ url: '/default/server/url/' }]};
+      openApiDescription = {
+        ...openApiDescription,
+        servers: [{
+          url: '/default/{serverName}/url/',
+          variables: {
+            serverName: {
+              default: 'beta',
+            },
+          },
+        }],
+      };
       await executor.setOpenapiSpec(openApiDescription);
       const response = await executor.executeOperation('FilesGetMetadata', configuration);
       expect(response).toBe('request response');
@@ -104,10 +114,96 @@ describe('An OpenApiOperationExecutor', (): void => {
           pathReqMethod: 'post',
           parameters: [],
         },
-        { basePath: '/default/server/url' },
+        {},
         {},
       );
-      expect(OpenApiClientAxiosApi).toHaveBeenCalledWith(paramFactory, '/default/server/url');
+      expect(OpenApiClientAxiosApi).toHaveBeenCalledWith(paramFactory, '/default/beta/url');
+    });
+
+    it(`uses the Operation's server url with any slashes removed from the end and default variables replaced
+      if no basePath is specified in the configuration.`,
+    async(): Promise<void> => {
+      openApiDescription = {
+        ...openApiDescription,
+        paths: {
+          '/path/to/example': {
+            post: {
+              servers: [{
+                url: '/default/{serverName}/url/',
+                variables: {
+                  serverName: {
+                    default: 'beta',
+                  },
+                },
+              }],
+              summary: 'Files - Get Metadata',
+              description: `Returns the metadata for a file or folder.
+                Note: Metadata for the root folder is unsupported.`,
+              operationId: 'FilesGetMetadata',
+              security: [{ oAuth: [ 'files.metadata.read' ]}],
+              responses: {},
+            },
+          },
+        },
+      };
+      await executor.setOpenapiSpec(openApiDescription);
+      const response = await executor.executeOperation('FilesGetMetadata', configuration);
+      expect(response).toBe('request response');
+      expect(OpenApiAxiosParamFactory).toHaveBeenCalledWith(
+        {
+          ...openApiDescription.paths['/path/to/example'].post,
+          pathName: '/path/to/example',
+          pathReqMethod: 'post',
+          parameters: [],
+          overrideBasePath: '/default/beta/url',
+        },
+        {},
+        {},
+      );
+      expect(OpenApiClientAxiosApi).toHaveBeenCalledWith(paramFactory, '/default/beta/url');
+    });
+
+    it(`uses the Path Item's server url with any slashes removed from the end and default variables replaced
+      if no basePath is specified in the configuration and the operation does nor specify servers.`,
+    async(): Promise<void> => {
+      openApiDescription = {
+        ...openApiDescription,
+        paths: {
+          '/path/to/example': {
+            post: {
+              servers: [{
+                url: '/default/{serverName}/url/',
+                variables: {
+                  serverName: {
+                    default: 'beta',
+                  },
+                },
+              }],
+              summary: 'Files - Get Metadata',
+              description: `Returns the metadata for a file or folder.
+                Note: Metadata for the root folder is unsupported.`,
+              operationId: 'FilesGetMetadata',
+              security: [{ oAuth: [ 'files.metadata.read' ]}],
+              responses: {},
+            },
+          },
+        },
+      };
+      await executor.setOpenapiSpec(openApiDescription);
+      const response = await executor.executeOperation('FilesGetMetadata', configuration);
+      expect(response).toBe('request response');
+      expect(OpenApiAxiosParamFactory).toHaveBeenCalledWith(
+        {
+          ...openApiDescription.paths['/path/to/example'].post,
+          pathName: '/path/to/example',
+          pathReqMethod: 'post',
+          parameters: [],
+          overrideBasePath: '/default/beta/url',
+        },
+        {},
+        {},
+      );
+      expect(OpenApiClientAxiosApi).toHaveBeenCalledWith(paramFactory, '/default/beta/url');
     });
 
     it(`uses an empty basePath if no basePath is supplied and no server urls are in the spec.`,
@@ -123,7 +219,7 @@ describe('An OpenApiOperationExecutor', (): void => {
             pathReqMethod: 'post',
             parameters: [],
           },
-          { basePath: '' },
+          {},
           {},
         );
         expect(OpenApiClientAxiosApi).toHaveBeenCalledWith(paramFactory, '');
