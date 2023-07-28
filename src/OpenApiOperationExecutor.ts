@@ -20,6 +20,8 @@ import type {
   SecurityScheme,
   DereferencedOperation,
   DereferencedParameter,
+  Server,
+  ServerVariable,
 } from './OpenApiSchemaConfiguration';
 
 export interface CodeAuthorizationUrlResponse {
@@ -27,12 +29,15 @@ export interface CodeAuthorizationUrlResponse {
   authorizationUrl: string;
 }
 
-export type OpenApiClientConfigurationWithBasePath =
-  Omit<OpenApiClientConfiguration, 'basePath'> & Required<Pick<OpenApiClientConfiguration, 'basePath'>>;
+export type RequireFields<T, TFields extends string> =
+Omit<T, TFields> & Required<Pick<T, TFields & keyof T>>;
+
+export type OpenApiClientConfigurationWithBasePath = RequireFields<OpenApiClientConfiguration, 'basePath'>;
 
 export interface PathInfo {
   pathName: string;
   pathReqMethod: string;
+  overrideBasePath?: string;
 }
 
 export type OperationWithPathInfo = DereferencedOperation & PathInfo;
@@ -51,11 +56,10 @@ export class OpenApiOperationExecutor {
   public async executeOperation(
     operationId: string,
     configuration: OpenApiClientConfiguration = {},
-    args?: any,
+    args?: Record<string, any>,
     options?: AxiosRequestConfig,
   ): Promise<AxiosResponse> {
     this.assertOpenApiDescriptionHasBeenSet();
-    configuration.basePath ||= this.constructBasePath();
     const operationAndPathInfo = this.getOperationWithPathInfoMatchingOperationId(operationId);
     return this.sendOperationRequest(
       operationAndPathInfo,
@@ -70,7 +74,7 @@ export class OpenApiOperationExecutor {
     operationAndPathInfo: OperationWithPathInfo,
     configuration: OpenApiClientConfiguration,
     securitySchemes: Record<string, SecurityScheme>,
-    args?: any,
+    args?: Record<string, any>,
     options?: AxiosRequestConfig,
   ): Promise<AxiosResponse> {
     const paramFactory = new OpenApiAxiosParamFactory(
@@ -78,7 +82,10 @@ export class OpenApiOperationExecutor {
       configuration,
       securitySchemes,
     );
-    const openApiClientApi = new OpenApiClientAxiosApi(paramFactory, configuration.basePath);
+    const basePath = configuration.basePath ??
+      operationAndPathInfo.overrideBasePath ??
+      this.constructBasePathFromGlobalServers();
+    const openApiClientApi = new OpenApiClientAxiosApi(paramFactory, basePath);
     return openApiClientApi.sendRequest(args, options);
   }
 
@@ -174,13 +181,35 @@ export class OpenApiOperationExecutor {
       : pkceOauthOperationAndPathInfo;
   }
 
-  private constructBasePath(): string {
-    // eslint-disable-next-line unicorn/expiring-todo-comments
-    // TODO support server variables in url
+  private constructBasePathFromGlobalServers(): string {
     if (this.openApiDescription!.servers && this.openApiDescription!.servers.length > 0) {
-      return this.openApiDescription!.servers[0].url.replace(/\/+$/u, '');
+      return this.constructBasePath(this.openApiDescription!.servers);
     }
     return '';
+  }
+
+  private constructServerPathForOperation(hasServers: { servers?: readonly Server[] }): string | undefined {
+    if (hasServers.servers && hasServers.servers.length > 0) {
+      return this.constructBasePath(hasServers.servers);
+    }
+    return undefined;
+  }
+
+  private constructBasePath(servers: readonly Server[]): string {
+    const firstServer = servers[0];
+    const withoutTrailingSlashes = firstServer.url.replace(/\/+$/u, '');
+    if (firstServer.variables) {
+      return this.replaceServerVariablesWithDefaults(withoutTrailingSlashes, firstServer.variables);
+    }
+    return withoutTrailingSlashes;
+  }
+
+  private replaceServerVariablesWithDefaults(url: string, serverVariables: Record<string, ServerVariable>): string {
+    // eslint-disable-next-line unicorn/expiring-todo-comments
+    // TODO support setting server variables to values other than defaults
+    return Object.entries(serverVariables)
+      .reduce((result: string, [ variable, value ]): string =>
+        result.replaceAll(`{${variable}}`, value.default), url);
   }
 
   private getOperationWithPathInfoMatchingOperationId(operationId: string): OperationWithPathInfo {
@@ -199,6 +228,8 @@ export class OpenApiOperationExecutor {
                 security: operation.security ?? this.openApiDescription!.security,
                 pathName,
                 pathReqMethod,
+                overrideBasePath: this.constructServerPathForOperation(operation) ??
+                  this.constructServerPathForOperation(pathItem),
               };
             }
           }
