@@ -114,7 +114,7 @@ describe('An OpenApiOperationExecutor', (): void => {
           pathReqMethod: 'post',
           parameters: [],
         },
-        {},
+        { basePath: '/default/beta/url' },
         {},
       );
       expect(OpenApiClientAxiosApi).toHaveBeenCalledWith(paramFactory, '/default/beta/url');
@@ -157,7 +157,7 @@ describe('An OpenApiOperationExecutor', (): void => {
           parameters: [],
           overrideBasePath: '/default/beta/url',
         },
-        {},
+        { basePath: '/default/beta/url' },
         {},
       );
       expect(OpenApiClientAxiosApi).toHaveBeenCalledWith(paramFactory, '/default/beta/url');
@@ -200,7 +200,7 @@ describe('An OpenApiOperationExecutor', (): void => {
           parameters: [],
           overrideBasePath: '/default/beta/url',
         },
-        {},
+        { basePath: '/default/beta/url' },
         {},
       );
       expect(OpenApiClientAxiosApi).toHaveBeenCalledWith(paramFactory, '/default/beta/url');
@@ -219,7 +219,7 @@ describe('An OpenApiOperationExecutor', (): void => {
             pathReqMethod: 'post',
             parameters: [],
           },
-          {},
+          { basePath: '' },
           {},
         );
         expect(OpenApiClientAxiosApi).toHaveBeenCalledWith(paramFactory, '');
@@ -397,6 +397,8 @@ describe('An OpenApiOperationExecutor', (): void => {
         'authorizationUrl',
         { clientId: 'abc123' },
       )).rejects.toThrow('No Openapi description supplied.');
+      expect(OpenApiAxiosParamFactory).toHaveBeenCalledTimes(0);
+      expect(OpenApiClientAxiosApi).toHaveBeenCalledTimes(0);
     });
 
     it('throws an error if the security scheme does not exist.', async(): Promise<void> => {
@@ -407,6 +409,8 @@ describe('An OpenApiOperationExecutor', (): void => {
         'authorizationUrl',
         { clientId: 'abc123' },
       )).rejects.toThrow('No security scheme called bad-scheme found.');
+      expect(OpenApiAxiosParamFactory).toHaveBeenCalledTimes(0);
+      expect(OpenApiClientAxiosApi).toHaveBeenCalledTimes(0);
     });
 
     it('throws an error if the scheme is not the oauth2 type.', async(): Promise<void> => {
@@ -417,6 +421,8 @@ describe('An OpenApiOperationExecutor', (): void => {
         'authorizationUrl',
         { clientId: 'abc123' },
       )).rejects.toThrow('Execution of oidc security schemes is not supported.');
+      expect(OpenApiAxiosParamFactory).toHaveBeenCalledTimes(0);
+      expect(OpenApiClientAxiosApi).toHaveBeenCalledTimes(0);
     });
 
     it('throws an error if the oauth flow type does not exist.', async(): Promise<void> => {
@@ -427,6 +433,8 @@ describe('An OpenApiOperationExecutor', (): void => {
         'authorizationUrl',
         { clientId: 'abc123' },
       )).rejects.toThrow('No flow called pkce found in the oAuth security scheme.');
+      expect(OpenApiAxiosParamFactory).toHaveBeenCalledTimes(0);
+      expect(OpenApiClientAxiosApi).toHaveBeenCalledTimes(0);
     });
 
     describe('client credentials code flow', (): void => {
@@ -439,6 +447,8 @@ describe('An OpenApiOperationExecutor', (): void => {
           { username: 'adlerfaulkner', password: 'abc123' },
           { grant_type: 'client_credentials', scope: 'files.read' },
         )).rejects.toThrow('No stage called redirectUrl found in clientCredentials flow of the oAuth security scheme.');
+        expect(OpenApiAxiosParamFactory).toHaveBeenCalledTimes(0);
+        expect(OpenApiClientAxiosApi).toHaveBeenCalledTimes(0);
       });
 
       it('throws an error if the stage is not supported.', async(): Promise<void> => {
@@ -452,6 +462,8 @@ describe('An OpenApiOperationExecutor', (): void => {
         )).rejects.toThrow(
           'refreshUrl stage found in clientCredentials flow of the oAuth security scheme is not supported.',
         );
+        expect(OpenApiAxiosParamFactory).toHaveBeenCalledTimes(0);
+        expect(OpenApiClientAxiosApi).toHaveBeenCalledTimes(0);
       });
 
       it('returns an access token from the clientCredentials flow.',
@@ -482,6 +494,8 @@ describe('An OpenApiOperationExecutor', (): void => {
             { username: 'adlerfaulkner', password: 'abc123' },
             securityStageOperationSecuritySchemes,
           );
+          expect(OpenApiClientAxiosApi).toHaveBeenCalledTimes(1);
+          expect(OpenApiClientAxiosApi).toHaveBeenCalledWith(paramFactory, undefined);
         });
     });
 

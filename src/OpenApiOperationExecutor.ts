@@ -61,6 +61,7 @@ export class OpenApiOperationExecutor {
   ): Promise<AxiosResponse> {
     this.assertOpenApiDescriptionHasBeenSet();
     const operationAndPathInfo = this.getOperationWithPathInfoMatchingOperationId(operationId);
+    configuration.basePath ||= operationAndPathInfo.overrideBasePath ?? this.constructBasePathFromGlobalServers();
     return this.sendOperationRequest(
       operationAndPathInfo,
       configuration,
@@ -82,10 +83,7 @@ export class OpenApiOperationExecutor {
       configuration,
       securitySchemes,
     );
-    const basePath = configuration.basePath ??
-      operationAndPathInfo.overrideBasePath ??
-      this.constructBasePathFromGlobalServers();
-    const openApiClientApi = new OpenApiClientAxiosApi(paramFactory, basePath);
+    const openApiClientApi = new OpenApiClientAxiosApi(paramFactory, configuration.basePath);
     return openApiClientApi.sendRequest(args, options);
   }
 
