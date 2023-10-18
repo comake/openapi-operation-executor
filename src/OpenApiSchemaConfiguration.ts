@@ -9,15 +9,15 @@ export type BaseParameter = {
   readonly explode?: boolean;
   readonly schema?: JSONSchema;
   readonly example?: any;
-  readonly examples?: readonly string[] | readonly Reference[] | readonly Example[];
-  readonly content?: readonly string[] | readonly MediaType[];
+  readonly examples?: Record<string, Reference | Example>;
+  readonly content?: Record<string, MediaType>;
   readonly [k: string]: unknown;
 };
 
 export interface DereferencedBaseParameter extends BaseParameter {
   readonly schema?: DereferencedJSONSchema;
-  readonly examples?: readonly string[] | readonly Example[];
-  readonly content?: readonly string[] | readonly DereferencedMediaType[];
+  readonly examples?: Record<string, Example>;
+  readonly content?: Record<string, DereferencedMediaType>;
 }
 
 interface PathParameterFields {
@@ -69,7 +69,7 @@ export type DereferencedParameter =
 
 export type Encoding = {
   readonly contentType: string;
-  readonly headers: readonly string[] | readonly Header[] | readonly Reference[];
+  readonly headers: Record<string, Header | Reference>;
   readonly style: string;
   readonly explode: boolean;
   readonly allowReserved: boolean;
@@ -77,21 +77,21 @@ export type Encoding = {
 };
 
 export interface DereferencedEncoding extends Encoding {
-  readonly headers: readonly string[] | readonly Header[];
+  readonly headers: Record<string, Header>;
 }
 
 export type MediaType = {
   readonly schema?: JSONSchema;
   readonly example?: any;
-  readonly examples?: readonly string[] | readonly Reference[] | readonly Example[];
-  readonly encoding?: readonly string[] | readonly Encoding[];
+  readonly examples?: Record<string, Example | Reference>;
+  readonly encoding?: Record<string, Encoding>;
   readonly [k: string]: unknown;
 };
 
 export interface DereferencedMediaType extends MediaType {
   readonly schema?: DereferencedJSONSchema;
-  readonly examples?: readonly string[] | readonly Example[];
-  readonly encoding?: readonly string[] | readonly DereferencedEncoding[];
+  readonly examples?: Record<string, Example>;
+  readonly encoding?: Record<string, DereferencedEncoding>;
 }
 
 export type Header = {
@@ -103,15 +103,15 @@ export type Header = {
   readonly explode?: boolean;
   readonly schema?: JSONSchema;
   readonly example?: any;
-  readonly examples?: readonly string[] | readonly Reference[] | readonly Example[];
-  readonly content?: readonly string[] | readonly MediaType[];
+  readonly examples?: Record<string, Example | Reference>;
+  readonly content?: Record<string, MediaType>;
   readonly [k: string]: unknown;
 };
 
 export interface DereferencedHeader extends Header {
   readonly schema?: DereferencedJSONSchema;
-  readonly examples?: readonly string[] | readonly Example[];
-  readonly content?: readonly string[] | readonly DereferencedMediaType[];
+  readonly examples?: Record<string, Example>;
+  readonly content?: Record<string, DereferencedMediaType>;
 }
 
 export interface APIKeySecurityScheme {
