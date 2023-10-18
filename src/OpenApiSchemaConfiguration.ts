@@ -346,13 +346,14 @@ export interface JSONSchema {
   readonly minProperties?: number;
   readonly required?: readonly string[];
   readonly enum?: readonly unknown[];
-  readonly type?: 'array' | 'boolean' | 'integer' | 'number' | 'object' | 'string';
+  readonly type?: 'array' | 'boolean' | 'integer' | 'number' | 'object' | 'string' | 'null';
   readonly not?: JSONSchema | Reference;
   readonly allOf?: readonly (JSONSchema | Reference)[];
   readonly oneOf?: readonly (JSONSchema | Reference)[];
   readonly anyOf?: readonly (JSONSchema | Reference)[];
   readonly items?: JSONSchema | Reference;
   readonly properties?: Record<string, JSONSchema | Reference>;
+  readonly patternProperties?: Record<string, JSONSchema | Reference>;
   readonly additionalProperties?: JSONSchema | Reference | boolean;
   readonly description?: string;
   readonly format?: string;
@@ -375,6 +376,7 @@ export interface DereferencedJSONSchema extends JSONSchema {
   readonly anyOf?: readonly DereferencedJSONSchema[];
   readonly items?: DereferencedJSONSchema;
   readonly properties?: Record<string, DereferencedJSONSchema>;
+  readonly patternProperties?: Record<string, DereferencedJSONSchema>;
   readonly additionalProperties?: DereferencedJSONSchema | boolean;
 }
 
