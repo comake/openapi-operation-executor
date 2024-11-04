@@ -131,6 +131,33 @@ export class OpenApiOperationExecutor {
     throw new Error(`${stage} stage found in ${flow} flow of the ${scheme} security scheme is not supported.`);
   }
 
+  public getOperationWithPathInfoMatchingOperationId(operationId: string): OperationWithPathInfo {
+    for (const pathName in this.openApiDescription!.paths) {
+      /* eslint-disable-next-line unicorn/prefer-object-has-own */
+      if (Object.prototype.hasOwnProperty.call(this.openApiDescription!.paths, pathName)) {
+        const pathItem = this.openApiDescription!.paths[pathName];
+        for (const pathReqMethod in pathItem) {
+          /* eslint-disable-next-line unicorn/prefer-object-has-own */
+          if (Object.prototype.hasOwnProperty.call(pathItem, pathReqMethod)) {
+            const operation = (pathItem as any)[pathReqMethod] as DereferencedOperation;
+            if (operation?.operationId === operationId) {
+              return {
+                ...operation,
+                parameters: this.addParametersIfNotDefined(operation.parameters ?? [], pathItem.parameters ?? []),
+                security: operation.security ?? this.openApiDescription!.security,
+                pathName,
+                pathReqMethod,
+                overrideBasePath: this.constructServerPathForOperation(operation) ??
+                  this.constructServerPathForOperation(pathItem),
+              };
+            }
+          }
+        }
+      }
+    }
+    throw new Error(`No OpenApi operation with operationId ${operationId} was found in the spec.`);
+  }
+
   private assertOpenApiDescriptionHasBeenSet(): void {
     if (!this.openApiDescription) {
       throw new Error('No Openapi description supplied.');
@@ -208,34 +235,6 @@ export class OpenApiOperationExecutor {
     return Object.entries(serverVariables)
       .reduce((result: string, [ variable, value ]): string =>
         result.replaceAll(`{${variable}}`, value.default), url);
-  }
-
-  private getOperationWithPathInfoMatchingOperationId(operationId: string): OperationWithPathInfo {
-    for (const pathName in this.openApiDescription!.paths) {
-      /* eslint-disable-next-line unicorn/prefer-object-has-own */
-      if (Object.prototype.hasOwnProperty.call(this.openApiDescription!.paths, pathName)) {
-        const pathItem = this.openApiDescription!.paths[pathName];
-        for (const pathReqMethod in pathItem) {
-          /* eslint-disable-next-line unicorn/prefer-object-has-own */
-          if (Object.prototype.hasOwnProperty.call(pathItem, pathReqMethod)) {
-            const operation = (pathItem as any)[pathReqMethod] as DereferencedOperation;
-            if (operation?.operationId === operationId) {
-              return {
-                ...operation,
-                parameters: this.addParametersIfNotDefined(operation.parameters ?? [], pathItem.parameters ?? []),
-                security: operation.security ?? this.openApiDescription!.security,
-                pathName,
-                pathReqMethod,
-                overrideBasePath: this.constructServerPathForOperation(operation) ??
-                  this.constructServerPathForOperation(pathItem),
-              };
-            }
-          }
-        }
-      }
-    }
-
-    throw new Error(`No OpenApi operation with operationId ${operationId} was found in the spec.`);
   }
 
   private addParametersIfNotDefined(
