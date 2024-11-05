@@ -35,6 +35,7 @@ const SECURITY_TYPES = {
   oauth2: 'oauth2',
   apiKey: 'apiKey',
   http: 'http',
+  hmac: 'hmac',
 };
 
 const BASIC_SCHEME_TYPE = 'basic';
@@ -141,6 +142,8 @@ export class OpenApiAxiosParamFactory {
             case SECURITY_TYPES.apiKey:
               return (scheme as APIKeySecurityScheme).name in this.configuration ||
                 this.configuration.apiKey !== undefined;
+            case SECURITY_TYPES.hmac:
+              return true;
             default:
               return false;
           }
