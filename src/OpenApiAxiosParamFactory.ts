@@ -24,7 +24,7 @@ export interface AxiosRequestParams {
 
 export type HeaderObject = Record<string, string>;
 
-const IGNORED_HEADER_PARAMETERS = new Set([ 'accept', 'content-type', 'authorization' ]);
+const IGNORED_HEADER_PARAMETERS = new Set([ 'accept', 'authorization' ]);
 const PARAMETER_AND_SCHEME_LOCATIONS = {
   path: 'path',
   query: 'query',
@@ -43,6 +43,7 @@ const BEARER_SCHEME_TYPE = 'bearer';
 
 const FORM_CONTENT_TYPE = 'application/x-www-form-urlencoded';
 const JSON_CONTENT_TYPE = 'application/json';
+export const BODY_ARG_NAME = '$BODY';
 
 /**
  * Factory that generates an AxiosRequestParams object for an {@link OpenApiClientAxiosApi}
@@ -314,7 +315,12 @@ export class OpenApiAxiosParamFactory {
   private constructRequestOptions(options: AxiosRequestConfig): AxiosRequestConfig {
     const { baseOptions } = this.configuration;
     const contentType = this.getContentType();
-    const data = this.getAndSerializeRequestData(contentType);
+    let data = this.getAndSerializeRequestData(contentType);
+    const rawBody = this.requestBodyArgs[BODY_ARG_NAME];
+    // If special $BODY argument is provided, use it as the request body.
+    if (data && rawBody && typeof rawBody === 'string' && rawBody.trim()) {
+      data = rawBody;
+    }
     const requestOptions = {
       method: this.pathReqMethod,
       ...baseOptions,
@@ -326,8 +332,8 @@ export class OpenApiAxiosParamFactory {
         ...options.headers,
       },
     };
-
-    if (data) {
+    // If Content-Type is explicitly set, don't override it.
+    if (!requestOptions.headers['Content-Type']) {
       requestOptions.headers['Content-Type'] = contentType;
     }
     return requestOptions;
