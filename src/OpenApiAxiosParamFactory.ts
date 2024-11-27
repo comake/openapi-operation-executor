@@ -43,7 +43,7 @@ const BEARER_SCHEME_TYPE = 'bearer';
 
 const FORM_CONTENT_TYPE = 'application/x-www-form-urlencoded';
 const JSON_CONTENT_TYPE = 'application/json';
-const BODY_ARG_NAME = '$BODY';
+export const BODY_ARG_NAME = '$BODY';
 
 /**
  * Factory that generates an AxiosRequestParams object for an {@link OpenApiClientAxiosApi}
