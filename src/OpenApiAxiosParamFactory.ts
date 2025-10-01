@@ -44,6 +44,7 @@ const BEARER_SCHEME_TYPE = 'bearer';
 const FORM_CONTENT_TYPE = 'application/x-www-form-urlencoded';
 const JSON_CONTENT_TYPE = 'application/json';
 export const BODY_ARG_NAME = '$BODY';
+export const BODY_BASE64_ARG_NAME = '$BODY_BASE64';
 
 /**
  * Factory that generates an AxiosRequestParams object for an {@link OpenApiClientAxiosApi}
@@ -315,17 +316,28 @@ export class OpenApiAxiosParamFactory {
   private constructRequestOptions(options: AxiosRequestConfig): AxiosRequestConfig {
     const { baseOptions } = this.configuration;
     const contentType = this.getContentType();
-    let data = this.getAndSerializeRequestData(contentType);
+    let data: string | Buffer | undefined = this.getAndSerializeRequestData(contentType);
+
     const rawBody = this.requestBodyArgs[BODY_ARG_NAME];
+    const rawBodyBase64 = this.requestBodyArgs[BODY_BASE64_ARG_NAME];
+
+    // Ensure only one special body argument is provided
+    if (rawBody && rawBodyBase64) {
+      throw new Error(`Cannot provide both ${BODY_ARG_NAME} and ${BODY_BASE64_ARG_NAME} arguments.`);
+    }
+
     // If special $BODY argument is provided, use it as the request body.
-    if (data && rawBody && typeof rawBody === 'string' && rawBody.trim()) {
+    if (rawBody && typeof rawBody === 'string' && rawBody.trim()) {
       data = rawBody;
+    } else if (rawBodyBase64 && typeof rawBodyBase64 === 'string' && rawBodyBase64.trim()) {
+      // If special $BODY_BASE64 argument is provided, decode and use it as the request body.
+      data = Buffer.from(rawBodyBase64, 'base64');
     }
     const requestOptions = {
       method: this.pathReqMethod,
       ...baseOptions,
       ...options,
-      data,
+      ...data ? { data } : {},
       headers: {
         ...this.headerParameters,
         ...baseOptions?.headers,
@@ -333,7 +345,7 @@ export class OpenApiAxiosParamFactory {
       },
     };
     // If Content-Type is explicitly set, don't override it.
-    if (!requestOptions.headers['Content-Type']) {
+    if (!requestOptions.headers['Content-Type'] && data) {
       requestOptions.headers['Content-Type'] = contentType;
     }
     return requestOptions;

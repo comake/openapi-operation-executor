@@ -394,7 +394,7 @@ describe('An OpenApiAxiosParamFactory', (): void => {
       expect(response.options.headers!['X-SOME-HEADER']).toBe('value');
     });
 
-  it('ignores Accept, Content-Type, and Authorization headers supplied as parameters.',
+  it('ignores Accept, and Authorization headers supplied as parameters.',
     async(): Promise<void> => {
       parameters = [
         { name: 'Accept', in: 'header' },
@@ -412,7 +412,9 @@ describe('An OpenApiAxiosParamFactory', (): void => {
         Authorization: 'value3',
       });
       expect(response.url).toBe('/example/api/path');
-      expect(response.options.headers).toEqual({});
+      expect(response.options.headers).toEqual({
+        'Content-Type': 'value2',
+      });
       expect(response.options.data).toBeUndefined();
     });
 
